@@ -1,0 +1,34 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.murcalendar.feeding'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.murcalendar.feeding"
+        minSdk 24
+        targetSdk 34
+        versionCode 7
+        versionName "1.5.1"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+        debug {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // Minimal: platform WebView only — no AppCompat/Kotlin conflict for v1
+}

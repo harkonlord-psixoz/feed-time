@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Мур-календарь</string>
+    <string name="widget_name">Мур-календарь</string>
+    <string name="widget_description">Сегодняшняя дата и время последнего кормления</string>
+    <string name="widget_not_fed">ещё не кормили</string>
+    <string name="widget_fed_at">Кошек кормили в %1$s</string>
+    <string name="widget_refresh">Обновить</string>
+</resources>
