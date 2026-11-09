@@ -80,7 +80,7 @@ Release sideload: `./gradlew assembleRelease` подписан тем же `andr
 
 В Android WebView тап по «Скачать APK» идёт через мост `MurCalendarAndroid.openUrl` → `DownloadManager` (или внешний браузер), а не через внутреннюю загрузку WebView.
 
-Текущая версия приложения в коде: **1.7.4** (`web/index.html` → `APP_VERSION`, Android `versionName`).
+Текущая версия приложения в коде: **1.7.5** (`web/index.html` → `APP_VERSION`, Android `versionName`).
 
 ---
 

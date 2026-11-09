@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Edge-to-edge: transparent system bars; app background draws behind icons. -->
     <style name="Theme.MurCalendar" parent="@android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">#F7EBE0</item>
-        <item name="android:navigationBarColor">#FFF6EE</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">#F7EBE0</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <!-- Dark icons by default (light theme); JS bridge flips for dark mode. -->
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

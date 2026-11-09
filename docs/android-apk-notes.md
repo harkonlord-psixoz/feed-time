@@ -1,4 +1,4 @@
-# Feed Time — Android APK (v1.7.4)
+# Feed Time — Android APK (v1.7.5)
 
 ## Что собрано
 
@@ -8,10 +8,17 @@
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
-- **Версия:** `1.7.4` (versionCode **13**)
+- **Версия:** `1.7.5` (versionCode **14**)
 - **Содержимое:** WebView + виджет + **локальные уведомления** (AlarmManager)
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
-- **Последняя пересборка:** CF-25 keystore + имя **Feed Time** + CF-24 скачивание APK из обновлений.
+- **Последняя пересборка:** CF-27 прозрачный status bar (edge-to-edge) + CF-25 keystore.
+
+## Прозрачный status bar (CF-27)
+
+1. `Theme.MurCalendar`: `statusBarColor` / `navigationBarColor` = transparent; на API 29+ без enforce contrast.
+2. `MainActivity.enableEdgeToEdge()` — контент рисуется под системными иконками; `WindowInsets` → CSS `--android-inset-top/bottom`.
+3. Светлый режим — тёмные иконки; тёмный — светлые (`MurCalendarAndroid.setSystemUiMode` из `applyMode`).
+4. Android-shell: `.page` и `.nav-drawer` учитывают insets (safe area).
 
 ## Подпись APK и ошибка «конфликтует с другим пакетом» (CF-25)
 
@@ -28,7 +35,7 @@ Android не даёт обновить приложение, если новый
 Если уже стоит старая сборка с другим сертификатом:
 
 1. **Удалите** «Feed Time» (или старое «Мур-календарь») (данные localStorage WebView сбросятся).
-2. Установите новый `feed-time.apk` (v1.7.4+).
+2. Установите новый `feed-time.apk` (v1.7.5+).
 3. Дальнейшие обновления с тем же keystore ставятся **поверх** без удаления.
 
 ### Важно для сборщиков

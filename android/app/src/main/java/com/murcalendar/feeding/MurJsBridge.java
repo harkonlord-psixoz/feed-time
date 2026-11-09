@@ -3,12 +3,16 @@ package com.murcalendar.feeding;
 import android.content.Context;
 import android.webkit.JavascriptInterface;
 
+import java.lang.ref.WeakReference;
+
 /** JS bridge: window.MurCalendarAndroid.* */
 public class MurJsBridge {
     private final Context appContext;
+    private final WeakReference<MainActivity> activityRef;
 
-    public MurJsBridge(Context context) {
-        this.appContext = context.getApplicationContext();
+    public MurJsBridge(MainActivity activity) {
+        this.appContext = activity.getApplicationContext();
+        this.activityRef = new WeakReference<>(activity);
     }
 
     @JavascriptInterface
@@ -57,5 +61,17 @@ public class MurJsBridge {
     @JavascriptInterface
     public void openUrl(String url) {
         ExternalLinks.open(appContext, url);
+    }
+
+    /**
+     * Sync system bar icon contrast with app theme.
+     * @param mode "dark" → light icons; "light" → dark icons
+     */
+    @JavascriptInterface
+    public void setSystemUiMode(String mode) {
+        MainActivity activity = activityRef.get();
+        if (activity == null) return;
+        boolean dark = mode != null && mode.trim().equalsIgnoreCase("dark");
+        activity.applySystemUiForMode(dark);
     }
 }
