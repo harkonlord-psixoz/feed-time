@@ -877,7 +877,28 @@
     .pet-names-list {
       display: flex;
       flex-direction: column;
-      gap: 0.55rem;
+      gap: 0.85rem;
+    }
+
+    .pet-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      padding: 0.15rem 0 0.35rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+    }
+
+    .pet-entry:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .pet-entry-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--ink);
     }
 
     .pet-name-row {
@@ -886,11 +907,17 @@
       gap: 0.25rem;
     }
 
-    .pet-name-row label {
+    .pet-name-row label,
+    .pet-entry .field > label {
       font-family: var(--font-display);
       font-size: 0.88rem;
       font-weight: 700;
       color: var(--ink-soft);
+    }
+
+    .pet-entry .dd {
+      width: 100%;
+      min-width: 0;
     }
 
     .pet-name-input {
@@ -1138,16 +1165,21 @@
 
     /* ——— Theme picker (same custom dropdown as month/year) ——— */
     .theme-bar {
-      margin-top: 1.25rem;
+      margin-top: 0;
       position: relative;
       z-index: 30;
       overflow: visible;
+      width: 100%;
     }
 
     .theme-bar .dd {
-      width: min(100%, 18.5rem);
-      min-width: 13.5rem;
+      width: 100%;
+      min-width: 0;
       max-width: 100%;
+    }
+
+    .settings-form .theme-bar {
+      margin-top: 0;
     }
 
     .dd-value-row {
@@ -1181,6 +1213,11 @@
       position: relative;
       z-index: 20;
       overflow: visible;
+    }
+
+    /* display:flex above beats UA [hidden]; keep calendar nav only on Главная */
+    .period-bar[hidden] {
+      display: none !important;
     }
 
     .field {
@@ -1979,22 +2016,6 @@
       <p class="greeting" id="greeting" aria-live="polite"></p>
       <p class="pet-chip" id="pet-chip" aria-live="polite"></p>
 
-      <div class="theme-bar">
-        <div class="field">
-          <label id="theme-label">Палитра</label>
-          <div class="dd" id="theme-dd" data-open="false">
-            <button type="button" class="dd-trigger" id="theme-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="theme-label theme-trigger">
-              <span class="dd-value-row">
-                <span class="swatch" id="theme-swatch" aria-hidden="true"></span>
-                <span class="dd-value" id="theme-value">—</span>
-              </span>
-              <span class="dd-chevron" aria-hidden="true"></span>
-            </button>
-            <ul class="dd-menu" id="theme-menu" role="listbox" aria-labelledby="theme-label" hidden></ul>
-          </div>
-        </div>
-      </div>
-
       <div class="period-bar">
         <div class="field">
           <label id="month-label">Месяц</label>
@@ -2036,7 +2057,7 @@
     <div class="app-view" id="view-profile" data-view="profile" hidden>
       <section class="panel-card" aria-labelledby="profile-title">
         <h2 id="profile-title">Профиль</h2>
-        <p>Укажите вид, число и клички — приветствие, кнопка кормления и подпись на главной подстроятся.</p>
+        <p>Сначала число питомцев, затем у каждого — свой вид и кличка. Можно смешивать виды (например, кошка и собака).</p>
         <div class="profile-head">
           <div class="profile-avatar" aria-hidden="true"></div>
           <div>
@@ -2046,21 +2067,11 @@
         </div>
         <div class="profile-form">
           <div class="field">
-            <label id="pet-type-label">Вид питомца</label>
-            <div class="dd" id="pet-type-dd" data-open="false">
-              <button type="button" class="dd-trigger" id="pet-type-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pet-type-label pet-type-trigger">
-                <span class="dd-value" id="pet-type-value">—</span>
-                <span class="dd-chevron" aria-hidden="true"></span>
-              </button>
-              <ul class="dd-menu" id="pet-type-menu" role="listbox" aria-labelledby="pet-type-label" hidden></ul>
-            </div>
-          </div>
-          <div class="field">
             <label id="pet-count-label">Сколько питомцев</label>
             <div class="pet-count-control" id="pet-count-control" role="group" aria-labelledby="pet-count-label"></div>
           </div>
           <div class="field">
-            <label id="pet-names-label">Клички</label>
+            <label id="pet-names-label">Питомцы</label>
             <div class="pet-names-list" id="pet-names-list" aria-labelledby="pet-names-label"></div>
           </div>
         </div>
@@ -2070,10 +2081,26 @@
     <div class="app-view" id="view-settings" data-view="settings" hidden>
       <section class="panel-card" aria-labelledby="settings-title">
         <h2 id="settings-title">Настройки</h2>
-        <p>Палитру и слоты пока меняйте на главной; тема — в боковом меню.</p>
+        <p>Палитра и оповещения — здесь; светлая/тёмная — в боковом меню; слоты — на главной.</p>
         <p class="settings-version">Версия приложения: <strong id="app-version-label">—</strong></p>
 
         <div class="settings-form">
+          <div class="theme-bar" id="settings-theme-bar">
+            <div class="field">
+              <label id="theme-label">Палитра</label>
+              <div class="dd" id="theme-dd" data-open="false">
+                <button type="button" class="dd-trigger" id="theme-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="theme-label theme-trigger">
+                  <span class="dd-value-row">
+                    <span class="swatch" id="theme-swatch" aria-hidden="true"></span>
+                    <span class="dd-value" id="theme-value">—</span>
+                  </span>
+                  <span class="dd-chevron" aria-hidden="true"></span>
+                </button>
+                <ul class="dd-menu" id="theme-menu" role="listbox" aria-labelledby="theme-label" hidden></ul>
+              </div>
+            </div>
+          </div>
+
           <div class="field">
             <label for="github-pat-input">Токен GitHub (необязательно)</label>
             <input
@@ -2099,8 +2126,9 @@
 
         <ul class="settings-list">
           <li>Светлая / тёмная тема — в боковом меню (солнце / луна)</li>
-          <li>Палитра и число слотов — на экране «Главная»</li>
-          <li>Семейный синк и оповещения — в планах</li>
+          <li>Палитра — выше на этом экране; число слотов — на «Главной»</li>
+          <li>Оповещения: Android — локальные (AlarmManager); веб — план Notification API</li>
+          <li>Интервал напоминаний 3–4 ч и тихие часы 23:00–06:00 — см. docs</li>
         </ul>
       </section>
     </div>
@@ -2179,8 +2207,9 @@
       const MODE_KEY = "mur-calendar-mode";
       const SLOTS_KEY = "mur-calendar-slots";
       const PROFILE_KEY = "mur-calendar-profile";
+      const LAST_FEED_AT_KEY = "mur-calendar-last-feed-at";
       const GITHUB_PAT_KEY = "mur-calendar-github-pat";
-      const APP_VERSION = "1.6.0";
+      const APP_VERSION = "1.7.1";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
@@ -2219,12 +2248,9 @@
       const toastEl = document.getElementById("toast");
       const profileSummaryName = document.getElementById("profile-summary-name");
       const profileSummaryMeta = document.getElementById("profile-summary-meta");
-      const petTypeDd = document.getElementById("pet-type-dd");
-      const petTypeTrigger = document.getElementById("pet-type-trigger");
-      const petTypeValue = document.getElementById("pet-type-value");
-      const petTypeMenu = document.getElementById("pet-type-menu");
       const petCountControl = document.getElementById("pet-count-control");
       const petNamesList = document.getElementById("pet-names-list");
+      const openPetSpeciesMenus = [];
       let currentView = "home";
       let drawerOpen = false;
       let lastFocusBeforeDrawer = null;
@@ -2300,62 +2326,150 @@
         syncAndroidBridge();
       }
 
-      function normalizePetNames(arr, count) {
+      function validSpeciesId(id) {
+        return PET_SPECIES.some(function (s) { return s.id === id; }) ? id : "cat";
+      }
+
+      function speciesById(id) {
+        var sid = validSpeciesId(id);
+        for (var i = 0; i < PET_SPECIES.length; i++) {
+          if (PET_SPECIES[i].id === sid) return PET_SPECIES[i];
+        }
+        return FALLBACK_PET;
+      }
+
+      function defaultPet(species) {
+        return { species: validSpeciesId(species || "cat"), name: "" };
+      }
+
+      function normalizePets(list, count) {
         var out = [];
         var i;
-        for (i = 0; i < count; i++) {
-          out.push(arr && arr[i] != null ? String(arr[i]) : "");
+        var n = count;
+        if (!(n >= 1 && n <= PET_COUNT_MAX)) n = 1;
+        for (i = 0; i < n; i++) {
+          var src = list && list[i] ? list[i] : null;
+          if (src && typeof src === "object") {
+            out.push({
+              species: validSpeciesId(src.species || "cat"),
+              name: src.name != null ? String(src.name) : ""
+            });
+          } else {
+            out.push(defaultPet("cat"));
+          }
         }
         return out;
       }
 
+      function migrateLegacyProfile(parsed) {
+        var species = validSpeciesId(parsed.species || "cat");
+        var count = parseInt(parsed.count, 10);
+        if (!(count >= 1 && count <= PET_COUNT_MAX)) count = 1;
+        var names = parsed.names || [];
+        var pets = [];
+        var i;
+        for (i = 0; i < count; i++) {
+          pets.push({
+            species: species,
+            name: names[i] != null ? String(names[i]) : ""
+          });
+        }
+        return { version: 2, pets: pets };
+      }
+
       function loadPetProfile() {
-        var defaults = { species: "cat", count: 1, names: [""] };
+        var defaults = { version: 2, pets: [defaultPet("cat")] };
         try {
           var raw = localStorage.getItem(PROFILE_KEY);
           if (!raw) return defaults;
           var parsed = JSON.parse(raw);
           if (!parsed || typeof parsed !== "object") return defaults;
-          var species = String(parsed.species || "cat");
-          if (!PET_SPECIES.some(function (s) { return s.id === species; })) species = "cat";
-          var count = parseInt(parsed.count, 10);
-          if (!(count >= 1 && count <= PET_COUNT_MAX)) count = 1;
-          return {
-            species: species,
-            count: count,
-            names: normalizePetNames(parsed.names, count)
-          };
+          if (Array.isArray(parsed.pets)) {
+            var count = parsed.pets.length;
+            if (!(count >= 1 && count <= PET_COUNT_MAX)) count = 1;
+            return { version: 2, pets: normalizePets(parsed.pets, count) };
+          }
+          /* Legacy v1: single species + count + names[] */
+          return migrateLegacyProfile(parsed);
         } catch (e) {
           return defaults;
         }
       }
 
+      function getPets() {
+        return petProfile.pets || [];
+      }
+
+      function petCount() {
+        return getPets().length || 1;
+      }
+
       function savePetProfile() {
         try {
           localStorage.setItem(PROFILE_KEY, JSON.stringify({
-            species: petProfile.species,
-            count: petProfile.count,
-            names: normalizePetNames(petProfile.names, petProfile.count)
+            version: 2,
+            pets: normalizePets(getPets(), petCount())
           }));
         } catch (e) {}
         syncAndroidBridge();
+        syncFeedNotifications();
       }
 
       function getSpecies() {
-        for (var i = 0; i < PET_SPECIES.length; i++) {
-          if (PET_SPECIES[i].id === petProfile.species) return PET_SPECIES[i];
+        var pets = getPets();
+        if (!pets.length) return FALLBACK_PET;
+        return speciesById(pets[0].species);
+      }
+
+      function allSameSpecies() {
+        var pets = getPets();
+        if (!pets.length) return true;
+        var first = pets[0].species;
+        for (var i = 1; i < pets.length; i++) {
+          if (pets[i].species !== first) return false;
         }
-        return FALLBACK_PET;
+        return true;
       }
 
       function filledNicknames() {
         var list = [];
-        var names = petProfile.names || [];
-        for (var i = 0; i < petProfile.count; i++) {
-          var n = names[i] ? String(names[i]).trim() : "";
+        var pets = getPets();
+        for (var i = 0; i < pets.length; i++) {
+          var n = pets[i].name ? String(pets[i].name).trim() : "";
           if (n) list.push(n);
         }
         return list;
+      }
+
+      function speciesCaseSg(sp, caseId) {
+        if (caseId === "acc") return sp.accSg;
+        if (caseId === "gen") return sp.genSg;
+        if (caseId === "dat") return sp.datSg;
+        return sp.nomSg;
+      }
+
+      function speciesCasePl(sp, caseId) {
+        if (caseId === "acc") return sp.accPl;
+        if (caseId === "gen") return sp.genPl;
+        if (caseId === "dat") return sp.datPl;
+        return sp.nomPl;
+      }
+
+      function mixedSpeciesLabel() {
+        var pets = getPets();
+        return joinRuList(pets.map(function (p) {
+          return speciesById(p.species).nomSg;
+        }));
+      }
+
+      function speciesSummaryLabel() {
+        var pets = getPets();
+        if (!pets.length) return FALLBACK_PET.label;
+        if (allSameSpecies()) {
+          var sp = speciesById(pets[0].species);
+          return pets.length > 1 ? sp.label : (sp.nomSg.charAt(0).toUpperCase() + sp.nomSg.slice(1));
+        }
+        return mixedSpeciesLabel();
       }
 
       function joinRuList(items) {
@@ -2439,41 +2553,104 @@
       function nicknameAccusative(name) { return declineNickname(name, "acc"); }
 
       function speciesForm(caseId) {
-        var sp = getSpecies();
-        var pl = petProfile.count > 1;
-        if (caseId === "acc") return pl ? sp.accPl : sp.accSg;
-        if (caseId === "gen") return pl ? sp.genPl : sp.genSg;
-        if (caseId === "dat") return pl ? sp.datPl : sp.datSg;
-        return pl ? sp.nomPl : sp.nomSg;
+        var pets = getPets();
+        var n = pets.length;
+        if (!n) return speciesCaseSg(FALLBACK_PET, caseId);
+        if (allSameSpecies()) {
+          var sp = speciesById(pets[0].species);
+          return n > 1 ? speciesCasePl(sp, caseId) : speciesCaseSg(sp, caseId);
+        }
+        return joinRuList(pets.map(function (p) {
+          return speciesCaseSg(speciesById(p.species), caseId);
+        }));
       }
 
-      /* Accusative «покормить …» — вид или склонённые клички. */
-      function petPhraseAccusative() {
+      /*
+       * Per-pet resolve: nickname if set, else species singular.
+       * Same species + no nicknames → classic plural/singular speciesForm.
+       */
+      function petPhraseForCase(caseId) {
+        var pets = getPets();
         var nicks = filledNicknames();
-        if (nicks.length) return joinRuList(nicks.map(nicknameAccusative));
-        return speciesForm("acc");
+        if (!nicks.length && allSameSpecies()) return speciesForm(caseId);
+        var parts = [];
+        for (var i = 0; i < pets.length; i++) {
+          var nick = pets[i].name ? String(pets[i].name).trim() : "";
+          if (nick) {
+            parts.push(declineNickname(nick, caseId));
+          } else {
+            parts.push(speciesCaseSg(speciesById(pets[i].species), caseId));
+          }
+        }
+        return joinRuList(parts);
       }
 
-      /* Genitive «для …» — вид или склонённые клички. */
-      function petPhraseGenitive() {
-        var nicks = filledNicknames();
-        if (nicks.length) return joinRuList(nicks.map(nicknameGenitive));
-        return speciesForm("gen");
+      function petPhraseAccusative() { return petPhraseForCase("acc"); }
+      function petPhraseGenitive() { return petPhraseForCase("gen"); }
+      function petPhraseDative() { return petPhraseForCase("dat"); }
+
+      function capitalizeFirst(str) {
+        var s = String(str || "");
+        if (!s) return s;
+        return s.charAt(0).toUpperCase() + s.slice(1);
       }
 
-      /* Dative «… кошке/кошкам» — вид или склонённые клички. */
-      function petPhraseDative() {
-        var nicks = filledNicknames();
-        if (nicks.length) return joinRuList(nicks.map(nicknameDative));
-        return speciesForm("dat");
-      }
-
-      /* Accusative subject for «X кормили в …» (capitalized species, or nicknames). */
+      /* Accusative subject for «X кормили в …». */
       function petFedWho() {
+        var pets = getPets();
         var nicks = filledNicknames();
-        if (nicks.length) return joinRuList(nicks.map(nicknameAccusative));
-        var sp = getSpecies();
-        return petProfile.count <= 1 ? sp.fedSg : sp.fedPl;
+        if (!nicks.length && allSameSpecies()) {
+          var sp = speciesById(pets[0] ? pets[0].species : "cat");
+          return pets.length <= 1 ? sp.fedSg : sp.fedPl;
+        }
+        return capitalizeFirst(petPhraseAccusative());
+      }
+
+      /* Nominative phrase for notification subjects (same helpers as chip/greetings). */
+      function petPhraseNominative() {
+        return petPhraseForCase("nom");
+      }
+
+      function nicknameLooksFeminine(name) {
+        var lower = String(name || "").trim().toLowerCase();
+        if (!lower || !/[а-яё]$/i.test(lower)) return false;
+        var last = lower.charAt(lower.length - 1);
+        return last === "а" || last === "я" || last === "ь";
+      }
+
+      function speciesLooksFeminine(sp) {
+        var n = String((sp && sp.nomSg) || "");
+        var last = n.charAt(n.length - 1);
+        return last === "а" || last === "я" || last === "ь";
+      }
+
+      function hungryVerb() {
+        if (petCount() > 1) return "проголодались";
+        var pets = getPets();
+        var pet = pets[0];
+        if (!pet) return "проголодался";
+        var nick = pet.name ? String(pet.name).trim() : "";
+        var fem = nick
+          ? nicknameLooksFeminine(nick)
+          : speciesLooksFeminine(speciesById(pet.species));
+        return fem ? "проголодалась" : "проголодался";
+      }
+
+      /* Full notification bodies — already declined; Android shows them as-is. */
+      function notifJustFedBody() {
+        return capitalizeFirst(petPhraseAccusative()) + " покормили только что";
+      }
+
+      function notifReminderBody() {
+        return "Пора покормить " + petPhraseAccusative() + "!";
+      }
+
+      function notifHungryBody() {
+        return capitalizeFirst(petPhraseNominative()) + " совсем " + hungryVerb() + "!";
+      }
+
+      function notifMorningBody() {
+        return "Доброе утро! Не забудьте покормить " + petPhraseAccusative() + ".";
       }
 
       function petCountWord(n) {
@@ -2497,21 +2674,22 @@
           var nicks = filledNicknames();
           profileSummaryName.textContent = nicks.length
             ? joinRuList(nicks)
-            : ("Хозяин · " + getSpecies().label.toLowerCase());
+            : ("Хозяин · " + speciesSummaryLabel());
         }
         if (profileSummaryMeta) {
+          var n = petCount();
           profileSummaryMeta.textContent =
-            petProfile.count + " " + petCountWord(petProfile.count) +
-            " · " + getSpecies().label;
+            n + " " + petCountWord(n) + " · " + speciesSummaryLabel();
         }
         updateLastFeedLabel();
         tickClock();
+        syncFeedNotifications();
       }
 
       function lastFeedPrefix() {
         var nicks = filledNicknames();
-        if (nicks.length) {
-          return "Кормили " + joinRuList(nicks.map(nicknameAccusative)) + " в ";
+        if (nicks.length || !allSameSpecies()) {
+          return "Кормили " + petPhraseAccusative() + " в ";
         }
         return petFedWho() + " кормили в ";
       }
@@ -2735,10 +2913,11 @@
       function setAppView(name) {
         if (name !== "home" && name !== "profile" && name !== "settings") name = "home";
         currentView = name;
+        document.documentElement.setAttribute("data-view", name);
         viewHome.hidden = name !== "home";
         viewProfile.hidden = name !== "profile";
         viewSettings.hidden = name !== "settings";
-        if (themeBar) themeBar.hidden = name !== "home";
+        /* Month/year dropdowns + prev/next/Сегодня only on Главная (calendar). */
         if (periodBar) periodBar.hidden = name !== "home";
         document.querySelectorAll(".nav-item[data-nav]").forEach(function (btn) {
           btn.classList.toggle("is-active", btn.getAttribute("data-nav") === name);
@@ -2821,9 +3000,12 @@
         }
         var hhmm = currentHhMm();
         setSlotValue(y, m, d, emptyIndex, hhmm);
+        try { localStorage.setItem(LAST_FEED_AT_KEY, String(Date.now())); } catch (e) {}
         renderMonth();
         requestAnimationFrame(scrollTodayIntoView);
         showToast("Записано " + hhmm + " · кормление " + (emptyIndex + 1));
+        notifyJustFed();
+        syncFeedNotifications();
       }
 
       feedBtn.addEventListener("click", feedCatsNow);
@@ -3024,12 +3206,16 @@
       }
 
       function anyDdOpen() {
-        return (
+        if (
           (themeDd && themeDd.getAttribute("data-open") === "true") ||
           (monthDd && monthDd.getAttribute("data-open") === "true") ||
-          (yearDd && yearDd.getAttribute("data-open") === "true") ||
-          (petTypeDd && petTypeDd.getAttribute("data-open") === "true")
-        );
+          (yearDd && yearDd.getAttribute("data-open") === "true")
+        ) return true;
+        for (var i = 0; i < openPetSpeciesMenus.length; i++) {
+          var item = openPetSpeciesMenus[i];
+          if (item && item.dd && item.dd.getAttribute("data-open") === "true") return true;
+        }
+        return false;
       }
 
       /* Align fixed portal menu to the trigger's viewport box. Only on open/resize — never mid-scroll. */
@@ -3062,9 +3248,9 @@
         menu.style.overscrollBehavior = "contain";
         menu.style.touchAction = "pan-y";
 
-        /* Width matches trigger; theme / pet-type menus keep a readable minimum. */
+        /* Width matches trigger; theme / per-pet species menus keep a readable minimum. */
         var width = rect.width;
-        if (menu.id === "theme-menu" || menu.id === "pet-type-menu") {
+        if (menu.id === "theme-menu" || (menu.id && menu.id.indexOf("pet-species-menu-") === 0)) {
           width = Math.max(rect.width, 220);
         }
         width = Math.min(width, vw - pad * 2);
@@ -3147,22 +3333,40 @@
         closeDropdown(themeDd, themeTrigger, themeMenu);
         closeDropdown(monthDd, monthTrigger, monthMenu);
         closeDropdown(yearDd, yearTrigger, yearMenu);
-        if (petTypeDd && petTypeTrigger && petTypeMenu) {
-          closeDropdown(petTypeDd, petTypeTrigger, petTypeMenu);
-        }
+        openPetSpeciesMenus.slice().forEach(function (item) {
+          if (item && item.dd && item.trigger && item.menu) {
+            closeDropdown(item.dd, item.trigger, item.menu);
+          }
+        });
       }
 
       function repositionOpenDropdowns() {
-        [
+        var list = [
           [themeDd, themeTrigger, themeMenu],
           [monthDd, monthTrigger, monthMenu],
-          [yearDd, yearTrigger, yearMenu],
-          [petTypeDd, petTypeTrigger, petTypeMenu]
-        ].forEach(function (item) {
+          [yearDd, yearTrigger, yearMenu]
+        ];
+        openPetSpeciesMenus.forEach(function (item) {
+          if (item) list.push([item.dd, item.trigger, item.menu]);
+        });
+        list.forEach(function (item) {
           if (item[0] && item[0].getAttribute("data-open") === "true" && item[2] && !item[2].hidden) {
             positionMenuFixed(item[1], item[2]);
           }
         });
+      }
+
+      function registerPetSpeciesMenu(dd, trigger, menu) {
+        openPetSpeciesMenus.push({ dd: dd, trigger: trigger, menu: menu });
+        trigger.addEventListener("click", function (e) {
+          e.stopPropagation();
+          toggleDropdown(dd, trigger, menu);
+        });
+        dd.addEventListener("click", function (e) { e.stopPropagation(); });
+        menu.addEventListener("click", function (e) { e.stopPropagation(); });
+        menu.addEventListener("wheel", function (e) { e.stopPropagation(); }, { passive: true });
+        menu.addEventListener("touchmove", function (e) { e.stopPropagation(); }, { passive: true });
+        menu.addEventListener("scroll", function (e) { e.stopPropagation(); }, { passive: true });
       }
 
       function buildMonthMenu() {
@@ -3234,21 +3438,13 @@
         e.stopPropagation();
         toggleDropdown(yearDd, yearTrigger, yearMenu);
       });
-      if (petTypeTrigger) {
-        petTypeTrigger.addEventListener("click", function (e) {
-          e.stopPropagation();
-          toggleDropdown(petTypeDd, petTypeTrigger, petTypeMenu);
-        });
-      }
-
       document.addEventListener("click", function () {
         closeAllDropdowns();
       });
       themeDd.addEventListener("click", function (e) { e.stopPropagation(); });
       monthDd.addEventListener("click", function (e) { e.stopPropagation(); });
       yearDd.addEventListener("click", function (e) { e.stopPropagation(); });
-      if (petTypeDd) petTypeDd.addEventListener("click", function (e) { e.stopPropagation(); });
-      [themeMenu, monthMenu, yearMenu, petTypeMenu].forEach(function (menu) {
+      [themeMenu, monthMenu, yearMenu].forEach(function (menu) {
         if (!menu) return;
         menu.addEventListener("click", function (e) { e.stopPropagation(); });
         /* Keep page/drawer from stealing wheel/touch while the list scrolls. */
@@ -3499,55 +3695,16 @@
         });
       });
 
-      /* ——— Profile: species / count / nicknames ——— */
-      function syncPetTypeControl() {
-        if (!petTypeValue) return;
-        petTypeValue.textContent = getSpecies().label;
-        if (!petTypeMenu) return;
-        petTypeMenu.querySelectorAll(".dd-option").forEach(function (btn) {
-          btn.setAttribute("aria-selected", btn.dataset.value === petProfile.species ? "true" : "false");
-        });
-      }
-
-      function buildPetTypeMenu() {
-        if (!petTypeMenu) return;
-        petTypeMenu.innerHTML = "";
-        PET_SPECIES.forEach(function (sp) {
-          var li = document.createElement("li");
-          li.setAttribute("role", "presentation");
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "dd-option";
-          btn.setAttribute("role", "option");
-          btn.dataset.value = sp.id;
-          btn.textContent = sp.label;
-          btn.setAttribute("aria-selected", sp.id === petProfile.species ? "true" : "false");
-          btn.addEventListener("click", function () {
-            if (petProfile.species !== sp.id) {
-              petProfile.species = sp.id;
-              savePetProfile();
-              syncPetTypeControl();
-              renderPetNameFields();
-              applyPetCopy();
-            }
-            closeDropdown(petTypeDd, petTypeTrigger, petTypeMenu);
-            petTypeTrigger.focus();
-          });
-          li.appendChild(btn);
-          petTypeMenu.appendChild(li);
-        });
-        syncPetTypeControl();
-      }
-
+      /* ——— Profile: count above, per-pet species + nickname ——— */
       function setPetCount(n) {
         n = parseInt(n, 10);
-        if (!(n >= 1 && n <= PET_COUNT_MAX) || n === petProfile.count) {
+        var cur = petCount();
+        if (!(n >= 1 && n <= PET_COUNT_MAX) || n === cur) {
           renderPetCountControl();
           return;
         }
-        var prev = normalizePetNames(petProfile.names, petProfile.count);
-        petProfile.count = n;
-        petProfile.names = normalizePetNames(prev, n);
+        petProfile.pets = normalizePets(getPets(), n);
+        petProfile.version = 2;
         savePetProfile();
         renderPetCountControl();
         renderPetNameFields();
@@ -3556,14 +3713,15 @@
 
       function renderPetCountControl() {
         if (!petCountControl) return;
+        var cur = petCount();
         petCountControl.innerHTML = "";
         for (var n = 1; n <= PET_COUNT_MAX; n++) {
           (function (count) {
             var btn = document.createElement("button");
             btn.type = "button";
-            btn.className = "pet-count-btn" + (count === petProfile.count ? " is-active" : "");
+            btn.className = "pet-count-btn" + (count === cur ? " is-active" : "");
             btn.textContent = String(count);
-            btn.setAttribute("aria-pressed", count === petProfile.count ? "true" : "false");
+            btn.setAttribute("aria-pressed", count === cur ? "true" : "false");
             btn.title = count + " " + petCountWord(count);
             btn.addEventListener("click", function () {
               setPetCount(count);
@@ -3573,43 +3731,241 @@
         }
       }
 
+      function fillSpeciesMenu(menu, currentId, onPick) {
+        menu.innerHTML = "";
+        PET_SPECIES.forEach(function (sp) {
+          var li = document.createElement("li");
+          li.setAttribute("role", "presentation");
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "dd-option";
+          btn.setAttribute("role", "option");
+          btn.dataset.value = sp.id;
+          btn.textContent = sp.label;
+          btn.setAttribute("aria-selected", sp.id === currentId ? "true" : "false");
+          btn.addEventListener("click", function () {
+            onPick(sp);
+          });
+          li.appendChild(btn);
+          menu.appendChild(li);
+        });
+      }
+
       function renderPetNameFields() {
         if (!petNamesList) return;
+        closeAllDropdowns();
+        openPetSpeciesMenus.slice().forEach(function (item) {
+          if (item && item.menu && item.menu.parentElement === document.body) {
+            try { item.menu.remove(); } catch (e) {}
+          }
+        });
+        openPetSpeciesMenus.length = 0;
+        document.querySelectorAll('[id^="pet-species-menu-"]').forEach(function (el) {
+          if (el.parentElement === document.body) {
+            try { el.remove(); } catch (e) {}
+          }
+        });
         petNamesList.innerHTML = "";
-        for (var i = 0; i < petProfile.count; i++) {
+        var pets = getPets();
+        for (var i = 0; i < pets.length; i++) {
           (function (idx) {
-            var row = document.createElement("div");
-            row.className = "pet-name-row";
-            var lab = document.createElement("label");
-            lab.setAttribute("for", "pet-name-" + idx);
-            lab.textContent = petProfile.count === 1 ? "Кличка" : ("Кличка " + (idx + 1));
+            var pet = pets[idx];
+            var sp = speciesById(pet.species);
+            var entry = document.createElement("div");
+            entry.className = "pet-entry";
+
+            var title = document.createElement("p");
+            title.className = "pet-entry-title";
+            title.textContent = pets.length === 1 ? "Питомец" : ("Питомец " + (idx + 1));
+            entry.appendChild(title);
+
+            var typeField = document.createElement("div");
+            typeField.className = "field";
+            var typeLab = document.createElement("label");
+            var typeLabId = "pet-species-label-" + idx;
+            typeLab.id = typeLabId;
+            typeLab.textContent = "Вид";
+            var dd = document.createElement("div");
+            dd.className = "dd";
+            dd.id = "pet-species-dd-" + idx;
+            dd.setAttribute("data-open", "false");
+            var trigger = document.createElement("button");
+            trigger.type = "button";
+            trigger.className = "dd-trigger";
+            trigger.id = "pet-species-trigger-" + idx;
+            trigger.setAttribute("aria-haspopup", "listbox");
+            trigger.setAttribute("aria-expanded", "false");
+            trigger.setAttribute("aria-labelledby", typeLabId + " " + trigger.id);
+            var valueSpan = document.createElement("span");
+            valueSpan.className = "dd-value";
+            valueSpan.id = "pet-species-value-" + idx;
+            valueSpan.textContent = sp.label;
+            var chev = document.createElement("span");
+            chev.className = "dd-chevron";
+            chev.setAttribute("aria-hidden", "true");
+            trigger.appendChild(valueSpan);
+            trigger.appendChild(chev);
+            var menu = document.createElement("ul");
+            menu.className = "dd-menu";
+            menu.id = "pet-species-menu-" + idx;
+            menu.setAttribute("role", "listbox");
+            menu.setAttribute("aria-labelledby", typeLabId);
+            menu.hidden = true;
+            fillSpeciesMenu(menu, pet.species, function (picked) {
+              petProfile.pets[idx].species = picked.id;
+              valueSpan.textContent = picked.label;
+              menu.querySelectorAll(".dd-option").forEach(function (b) {
+                b.setAttribute("aria-selected", b.dataset.value === picked.id ? "true" : "false");
+              });
+              savePetProfile();
+              applyPetCopy();
+              closeDropdown(dd, trigger, menu);
+              trigger.focus();
+            });
+            dd.appendChild(trigger);
+            dd.appendChild(menu);
+            typeField.appendChild(typeLab);
+            typeField.appendChild(dd);
+            entry.appendChild(typeField);
+            registerPetSpeciesMenu(dd, trigger, menu);
+
+            var nameRow = document.createElement("div");
+            nameRow.className = "pet-name-row";
+            var nameLab = document.createElement("label");
+            nameLab.setAttribute("for", "pet-name-" + idx);
+            nameLab.textContent = "Кличка";
             var input = document.createElement("input");
             input.type = "text";
             input.className = "pet-name-input";
             input.id = "pet-name-" + idx;
             input.maxLength = 32;
             input.autocomplete = "off";
-            input.placeholder = petProfile.count === 1
-              ? ("например, " + getSpecies().nomSg)
-              : ("Питомец " + (idx + 1));
-            input.value = petProfile.names[idx] || "";
+            input.placeholder = "например, " + sp.nomSg;
+            input.value = pet.name || "";
             input.addEventListener("input", function () {
-              petProfile.names[idx] = input.value;
+              petProfile.pets[idx].name = input.value;
               savePetProfile();
               applyPetCopy();
             });
-            row.appendChild(lab);
-            row.appendChild(input);
-            petNamesList.appendChild(row);
+            nameRow.appendChild(nameLab);
+            nameRow.appendChild(input);
+            entry.appendChild(nameRow);
+
+            petNamesList.appendChild(entry);
           })(i);
         }
       }
 
       function initProfileUi() {
-        buildPetTypeMenu();
         renderPetCountControl();
         renderPetNameFields();
         applyPetCopy();
+      }
+
+      /* ——— Notifications (Android bridge + web Notification hooks) ——— */
+      function getLastFeedAtMs() {
+        try {
+          var raw = localStorage.getItem(LAST_FEED_AT_KEY);
+          var n = raw ? parseInt(raw, 10) : 0;
+          if (n > 0) return n;
+        } catch (e) {}
+        /* Infer from today's last HH:MM slot if present. */
+        var hhmm = getLastFedToday();
+        if (!hhmm || hhmm.length < 4) return 0;
+        var parts = hhmm.split(":");
+        var h = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) return 0;
+        var t = new Date();
+        t.setHours(h, m, 0, 0);
+        return t.getTime();
+      }
+
+      function webNotify(title, body, tag) {
+        try {
+          if (typeof Notification === "undefined") return false;
+          if (Notification.permission !== "granted") return false;
+          new Notification(title, { body: body || "", tag: tag || "mur-feed" });
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function ensureWebNotificationPermission() {
+        try {
+          if (typeof Notification === "undefined") return;
+          if (Notification.permission === "default") {
+            Notification.requestPermission().catch(function () {});
+          }
+        } catch (e) {}
+      }
+
+      function notifyJustFed() {
+        var body = notifJustFedBody();
+        try {
+          if (window.MurCalendarAndroid && typeof window.MurCalendarAndroid.notifyJustFed === "function") {
+            window.MurCalendarAndroid.notifyJustFed(body);
+            return;
+          }
+        } catch (e) {}
+        webNotify("Мур-календарь", body, "mur-just-fed");
+        showToast(body);
+      }
+
+      function syncFeedNotifications() {
+        var lastMs = getLastFeedAtMs();
+        var reminder = notifReminderBody();
+        var hungry = notifHungryBody();
+        var morning = notifMorningBody();
+        try {
+          if (window.MurCalendarAndroid && typeof window.MurCalendarAndroid.scheduleFeedReminders === "function") {
+            window.MurCalendarAndroid.scheduleFeedReminders(
+              String(lastMs || 0),
+              reminder,
+              hungry,
+              morning
+            );
+            return;
+          }
+        } catch (e) {}
+        /* Web stub: schedule via setTimeout only while tab open (documented limits). */
+        try {
+          if (window.__murFeedTimers) {
+            window.__murFeedTimers.forEach(function (id) { clearTimeout(id); });
+          }
+          window.__murFeedTimers = [];
+          ensureWebNotificationPermission();
+          function scheduleWeb(delayMs, title, tag) {
+            if (delayMs < 0) delayMs = 0;
+            var id = setTimeout(function () {
+              webNotify("Мур-календарь", title, tag);
+            }, delayMs);
+            window.__murFeedTimers.push(id);
+          }
+          var now = Date.now();
+          var base = lastMs > 0 ? lastMs : now;
+          /* Reminder ~3.5h; hungry at 5h; skip quiet hours 23–06 in stub by clamping fire to next morning. */
+          function adjustQuiet(at) {
+            var d = new Date(at);
+            var h = d.getHours();
+            if (h >= 23 || h < 6) {
+              d.setHours(6, 15, 0, 0);
+              if (d.getTime() <= now) d.setDate(d.getDate() + 1);
+              return d.getTime();
+            }
+            return at;
+          }
+          var remAt = adjustQuiet(base + Math.round(3.5 * 3600 * 1000));
+          var hungAt = adjustQuiet(base + 5 * 3600 * 1000);
+          scheduleWeb(remAt - now, reminder, "mur-reminder");
+          scheduleWeb(hungAt - now, hungry, "mur-hungry");
+          /* Morning 06:15 once if still before tomorrow morning. */
+          var morn = new Date();
+          morn.setHours(6, 15, 0, 0);
+          if (morn.getTime() <= now) morn.setDate(morn.getDate() + 1);
+          scheduleWeb(morn.getTime() - now, morning, "mur-morning");
+        } catch (e) {}
       }
 
       function loadGithubPat() {
@@ -3778,6 +4134,8 @@
       initProfileUi();
       initSettingsUi();
       syncAndroidBridge();
+      syncFeedNotifications();
+      ensureWebNotificationPermission();
     })();
   </script>
 </body>

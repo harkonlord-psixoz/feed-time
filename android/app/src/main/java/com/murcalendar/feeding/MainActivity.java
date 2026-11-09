@@ -2,18 +2,22 @@ package com.murcalendar.feeding;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
+    private static final int REQ_POST_NOTIFICATIONS = 1001;
     private WebView webView;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestNotifPermissionIfNeeded();
         webView = new WebView(this);
         setContentView(webView);
 
@@ -29,6 +33,7 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
 
         webView.addJavascriptInterface(new MurJsBridge(this), "MurCalendarAndroid");
+        FeedNotifier.ensureChannel(this);
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -39,6 +44,7 @@ public class MainActivity extends Activity {
                         null
                 );
                 FeedingAppWidget.requestUpdate(MainActivity.this);
+                FeedReminderScheduler.rescheduleAll(MainActivity.this);
             }
         });
         webView.loadUrl("file:///android_asset/index.html");
@@ -48,6 +54,19 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         FeedingAppWidget.requestUpdate(this);
+        FeedReminderScheduler.rescheduleAll(this);
+    }
+
+    private void requestNotifPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < 33) return;
+        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        requestPermissions(
+                new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                REQ_POST_NOTIFICATIONS
+        );
     }
 
     @Override
