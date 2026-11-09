@@ -32,9 +32,11 @@ releases/feed-time.apk — готовый debug APK (sideload)
 
 ## Веб / Open the HTML
 
-**RU:** Откройте `web/index.html` двойным кликом или через локальный сервер. Данные хранятся в `localStorage` браузера.
+**RU:** Полный клиент — `web/index.html` (тот же UI, что в APK). Локально: двойной клик или `python3 -m http.server`. На VPS: раздайте статикой через nginx с `web/` (поддомен `app.` предпочтительнее, чтобы не трогать placeholder на apex) — см. **[docs/vps-api-deploy.md](docs/vps-api-deploy.md) §13**.
 
-**EN:** Open `web/index.html` in any modern browser (or serve locally). Data stays in browser `localStorage`.
+Сайт (UI) и API — разные URL. Дефолт API в настройках: `http://api.harkonlord.su` (meta `feed-time-default-api`; на VPS API часто HTTP, пока 443 занят Xray).
+
+**EN:** Full client is `web/index.html` (same UI as the APK). Serve the `web/` folder via any static host / nginx; default sync API is `http://api.harkonlord.su`.
 
 ```bash
 # optional local server

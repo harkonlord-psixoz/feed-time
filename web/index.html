@@ -13,6 +13,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
+  <!-- Default family-sync API (override via localStorage or this meta when hosting). HTTP: 443 on VPS is often Xray. -->
+  <meta name="feed-time-default-api" content="http://api.harkonlord.su" />
   <title>Feed Time · Кормление</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -2165,10 +2167,10 @@
           <div class="field">
             <div class="sync-box" id="sync-box">
               <h3>Сервер и семья</h3>
-              <p class="sync-status" id="sync-status">Офлайн на устройстве. Укажите URL своего VPS, чтобы синхронизировать календарь.</p>
+              <p class="sync-status" id="sync-status">Офлайн на устройстве. Укажите URL API, чтобы синхронизировать календарь.</p>
 
               <div class="field">
-                <label for="sync-server-url">URL сервера</label>
+                <label for="sync-server-url">URL сервера (API)</label>
                 <input
                   type="url"
                   id="sync-server-url"
@@ -2176,11 +2178,11 @@
                   autocomplete="url"
                   spellcheck="false"
                   maxlength="256"
-                  placeholder="https://feed.example.com или http://IP:3080"
+                  placeholder="http://api.harkonlord.su"
                   aria-describedby="sync-server-hint"
                 />
                 <p class="settings-hint" id="sync-server-hint">
-                  Свой API на VPS (см. docs/vps-api-deploy.md). Без слэша в конце. Тема и локальные ключи mur-calendar-* остаются на устройстве.
+                  Отдельный API (не URL сайта). По умолчанию http://api.harkonlord.su. Без слэша в конце. Тема и ключи mur-calendar-* остаются на устройстве.
                 </p>
               </div>
 
@@ -2348,6 +2350,17 @@
       const APP_VERSION = "1.8.0";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
+      /* Default API for browser/APK when localStorage empty; meta allows host-specific override. */
+      const DEFAULT_SYNC_SERVER = (function () {
+        try {
+          var meta = document.querySelector('meta[name="feed-time-default-api"]');
+          var fromMeta = meta && meta.getAttribute("content");
+          if (fromMeta && String(fromMeta).trim()) {
+            return String(fromMeta).trim().replace(/\/+$/, "");
+          }
+        } catch (e) {}
+        return "http://api.harkonlord.su";
+      })();
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
 
       const now = new Date();
@@ -4332,9 +4345,12 @@
 
       function loadSyncServerUrl() {
         try {
-          return String(localStorage.getItem(SYNC_SERVER_KEY) || "").trim().replace(/\/+$/, "");
+          var raw = localStorage.getItem(SYNC_SERVER_KEY);
+          /* Explicit empty string means user cleared the field (offline). Missing key → default. */
+          if (raw === null || raw === undefined) return DEFAULT_SYNC_SERVER;
+          return String(raw || "").trim().replace(/\/+$/, "");
         } catch (e) {
-          return "";
+          return DEFAULT_SYNC_SERVER;
         }
       }
 
@@ -4649,9 +4665,9 @@
         var url = loadSyncServerUrl();
         if (statusEl) {
           if (!url) {
-            statusEl.innerHTML = "Офлайн на устройстве. Укажите URL своего VPS, чтобы синхронизировать календарь.";
+            statusEl.innerHTML = "Офлайн на устройстве. Укажите URL API (например http://api.harkonlord.su).";
           } else if (!syncSession) {
-            statusEl.innerHTML = "Сервер: <strong>" + escapeHtml(url) + "</strong> — войдите или зарегистрируйтесь.";
+            statusEl.innerHTML = "API: <strong>" + escapeHtml(url) + "</strong> — войдите или зарегистрируйтесь.";
           } else if (!syncSession.household) {
             statusEl.innerHTML =
               "Вы вошли как <strong>" +
