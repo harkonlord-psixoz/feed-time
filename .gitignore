@@ -1,0 +1,14 @@
+# Android / Gradle
+android/.gradle/
+android/local.properties
+android/**/build/
+android/app/build/
+*.iml
+.idea/
+.DS_Store
+
+# Secrets — never commit
+*.jks
+*.keystore
+local.properties
+.env
