@@ -10,16 +10,31 @@ android {
         applicationId "com.murcalendar.feeding"
         minSdk 24
         targetSdk 34
-        versionCode 11
-        versionName "1.7.2"
+        versionCode 13
+        versionName "1.7.4"
+    }
+
+    // Stable shared debug keystore (committed under android/).
+    // ALL debug and release APKs for sideload use the same cert so updates
+    // do not hit INSTALL_FAILED_UPDATE_INCOMPATIBLE ("конфликтует с другим пакетом").
+    // Never regenerate android/mur-calendar-debug.keystore.
+    signingConfigs {
+        murDebug {
+            storeFile file('../mur-calendar-debug.keystore')
+            storePassword 'murcalendar'
+            keyAlias 'murcalendardebug'
+            keyPassword 'murcalendar'
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.murDebug
         }
         debug {
             minifyEnabled false
+            signingConfig signingConfigs.murDebug
         }
     }
 

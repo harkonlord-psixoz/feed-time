@@ -130,7 +130,7 @@ git push https://harkonlord-psixoz:СЮДА_PAT@github.com/harkonlord-psixoz/fee
 
 Откройте: https://github.com/harkonlord-psixoz/feed-time  
 
-Должны быть: `README.md`, `web/`, `android/`, `docs/`, `releases/mur-calendar.apk`.
+Должны быть: `README.md`, `web/`, `android/`, `docs/`, `releases/feed-time.apk`.
 
 Когда Cursor Connect заработает — напишите в чат «GitHub подключил»; дальше агенты смогут пушить сами.
 
@@ -143,5 +143,5 @@ git push https://harkonlord-psixoz:СЮДА_PAT@github.com/harkonlord-psixoz/fee
 | `web/index.html` | календарь |
 | `android/` | Gradle-проект |
 | `docs/` | заметки и планы |
-| `releases/mur-calendar.apk` | debug APK |
+| `releases/feed-time.apk` | debug APK |
 | `README.md` | кратко RU+EN |

@@ -56,7 +56,7 @@ public final class FeedNotifier {
             b = new Notification.Builder(context);
         }
         String safeBody = body == null ? "" : body;
-        b.setContentTitle(title == null ? "Мур-календарь" : title)
+        b.setContentTitle(title == null ? "Feed Time" : title)
                 .setContentText(safeBody)
                 .setSmallIcon(android.R.drawable.ic_menu_recent_history)
                 .setContentIntent(pi)
@@ -73,6 +73,6 @@ public final class FeedNotifier {
         String text = (body == null || body.trim().isEmpty())
                 ? "Питомца покормили только что"
                 : body.trim();
-        show(context, ID_JUST_FED, "Мур-календарь", text);
+        show(context, ID_JUST_FED, "Feed Time", text);
     }
 }

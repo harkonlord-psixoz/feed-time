@@ -79,13 +79,13 @@ final class ExternalLinks {
         try {
             DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
             if (dm == null) return false;
-            String name = TextUtils.isEmpty(fileName) ? "mur-calendar.apk" : fileName;
+            String name = TextUtils.isEmpty(fileName) ? "feed-time.apk" : fileName;
             if (!name.toLowerCase().endsWith(".apk")) {
                 name = name + ".apk";
             }
             DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url.trim()));
             req.setTitle(name);
-            req.setDescription("Мур-календарь");
+            req.setDescription("Feed Time");
             req.setMimeType("application/vnd.android.package-archive");
             req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
@@ -100,7 +100,7 @@ final class ExternalLinks {
 
     static String guessFileName(String url, String contentDisposition) {
         if (contentDisposition != null) {
-            // filename="mur-calendar.apk" or filename*=UTF-8''mur-calendar.apk
+            // filename="feed-time.apk" or filename*=UTF-8''feed-time.apk
             String cd = contentDisposition;
             int star = cd.toLowerCase().indexOf("filename*=");
             if (star >= 0) {
@@ -130,12 +130,12 @@ final class ExternalLinks {
                 return sanitizeFileName(u.substring(slash + 1));
             }
         }
-        return "mur-calendar.apk";
+        return "feed-time.apk";
     }
 
     private static String sanitizeFileName(String name) {
         String n = name.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
-        return n.isEmpty() ? "mur-calendar.apk" : n;
+        return n.isEmpty() ? "feed-time.apk" : n;
     }
 
     private static void toast(Context context, String message) {

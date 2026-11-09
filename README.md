@@ -1,4 +1,4 @@
-# feed-time / Мур-календарь
+# feed-time / Feed Time
 
 Календарь кормления кошек (и других питомцев) + Android-обёртка WebView с виджетом.
 
@@ -14,7 +14,7 @@ Cat feeding calendar (and other pets) + Android WebView wrapper with a home-scre
 web/index.html          — веб-календарь (откройте в браузере)
 android/                — исходники Gradle-проекта (пакет com.murcalendar.feeding)
 docs/                   — планы и заметки (APK, sync, темы, GitHub)
-releases/mur-calendar.apk — готовый debug APK (sideload)
+releases/feed-time.apk — готовый debug APK (sideload)
 ```
 
 ---
@@ -37,7 +37,7 @@ cd web && python3 -m http.server 8080
 
 ### Готовый APK / Prebuilt
 
-Файл: `releases/mur-calendar.apk` (debug-подпись, API 24+).  
+Файл: `releases/feed-time.apk` (debug-подпись, API 24+).  
 Скопируйте на телефон и установите (разрешить «неизвестные источники»).
 
 ### Сборка из исходников / Build
@@ -53,7 +53,7 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 # → app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Release: `./gradlew assembleRelease` + свой keystore (пока не настроен).
+Release sideload: `./gradlew assembleRelease` подписан тем же `android/mur-calendar-debug.keystore` (CF-25). Для Play Store — отдельный keystore.
 
 Подробнее: `docs/android-apk-notes.md`.
 
@@ -69,18 +69,18 @@ Release: `./gradlew assembleRelease` + свой keystore (пока не наст
 
 ### Как опубликовать Release с APK
 
-1. Соберите debug APK (`./gradlew assembleDebug`) или возьмите `releases/mur-calendar.apk`.
+1. Соберите debug APK (`./gradlew assembleDebug`) или возьмите `releases/feed-time.apk`.
 2. На GitHub: **Releases → Draft a new release**.
 3. Tag: `v1.7.0` (или следующий semver; совпадает с `versionName` / `APP_VERSION` в HTML).
 4. Title / notes — что изменилось.
-5. **Attach binaries**: загрузите `mur-calendar.apk` (имя с `.apk` — приложение найдёт вложение).
+5. **Attach binaries**: загрузите `feed-time.apk` (имя с `.apk` — приложение найдёт вложение).
 6. Publish release.
 
 После публикации «Проверить обновления» покажет tag, ссылку на релиз и прямую ссылку на APK.
 
 В Android WebView тап по «Скачать APK» идёт через мост `MurCalendarAndroid.openUrl` → `DownloadManager` (или внешний браузер), а не через внутреннюю загрузку WebView.
 
-Текущая версия приложения в коде: **1.7.0** (`web/index.html` → `APP_VERSION`, Android `versionName`).
+Текущая версия приложения в коде: **1.7.4** (`web/index.html` → `APP_VERSION`, Android `versionName`).
 
 ---
 
