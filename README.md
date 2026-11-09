@@ -34,9 +34,9 @@ releases/feed-time.apk — готовый debug APK (sideload)
 
 **RU:** Полный клиент — `web/index.html` (тот же UI, что в APK). Локально: двойной клик или `python3 -m http.server`. На VPS: раздайте статикой через nginx с `web/` (поддомен `app.` предпочтительнее, чтобы не трогать placeholder на apex) — см. **[docs/vps-api-deploy.md](docs/vps-api-deploy.md) §13**.
 
-Сайт (UI) и API — разные URL. Дефолт API в настройках: `http://api.harkonlord.su` (meta `feed-time-default-api`; на VPS API часто HTTP, пока 443 занят Xray).
+Сайт (UI) и API — разные URL. Дефолт API в настройках: `https://api.harkonlord.su` (meta `feed-time-default-api`). HTTPS на VPS: **[docs/vps-api-deploy.md](docs/vps-api-deploy.md) §14** (certbot + nginx; 443 / Xray).
 
-**EN:** Full client is `web/index.html` (same UI as the APK). Serve the `web/` folder via any static host / nginx; default sync API is `http://api.harkonlord.su`.
+**EN:** Full client is `web/index.html` (same UI as the APK). Serve the `web/` folder via any static host / nginx; default sync API is `https://api.harkonlord.su`.
 
 ```bash
 # optional local server

@@ -13,8 +13,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <!-- Default family-sync API (override via localStorage or this meta when hosting). HTTP: 443 on VPS is often Xray. -->
-  <meta name="feed-time-default-api" content="http://api.harkonlord.su" />
+  <!-- Default family-sync API (override via localStorage or this meta when hosting). Prefer HTTPS; see docs/vps-api-deploy.md §14. -->
+  <meta name="feed-time-default-api" content="https://api.harkonlord.su" />
   <title>Feed Time · Кормление</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -2178,11 +2178,11 @@
                   autocomplete="url"
                   spellcheck="false"
                   maxlength="256"
-                  placeholder="http://api.harkonlord.su"
+                  placeholder="https://api.harkonlord.su"
                   aria-describedby="sync-server-hint"
                 />
                 <p class="settings-hint" id="sync-server-hint">
-                  Отдельный API (не URL сайта). По умолчанию http://api.harkonlord.su. Без слэша в конце. Тема и ключи mur-calendar-* остаются на устройстве.
+                  Отдельный API (не URL сайта). По умолчанию https://api.harkonlord.su. Без слэша в конце. Тема и ключи mur-calendar-* остаются на устройстве.
                 </p>
               </div>
 
@@ -2361,7 +2361,7 @@
             return String(fromMeta).trim().replace(/\/+$/, "");
           }
         } catch (e) {}
-        return "http://api.harkonlord.su";
+        return "https://api.harkonlord.su";
       })();
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
 
@@ -4872,7 +4872,7 @@
         var url = loadSyncServerUrl();
         if (statusEl) {
           if (!url) {
-            statusEl.innerHTML = "Офлайн на устройстве. Укажите URL API (например http://api.harkonlord.su).";
+            statusEl.innerHTML = "Офлайн на устройстве. Укажите URL API (например https://api.harkonlord.su).";
           } else if (!syncSession) {
             statusEl.innerHTML = "API: <strong>" + escapeHtml(url) + "</strong> — войдите или зарегистрируйтесь.";
           } else if (!syncSession.household) {
