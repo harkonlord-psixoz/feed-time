@@ -13,9 +13,20 @@ Cat feeding calendar (and other pets) + Android WebView wrapper with a home-scre
 ```
 web/index.html          — веб-календарь (откройте в браузере)
 android/                — исходники Gradle-проекта (пакет com.murcalendar.feeding)
-docs/                   — планы и заметки (APK, sync, темы, GitHub)
+server/                 — свой API (auth, семья, синк кормлений) для VPS
+docs/                   — планы и заметки (APK, sync, деплой, темы, GitHub)
 releases/feed-time.apk — готовый debug APK (sideload)
 ```
+
+---
+
+## Семейный синк на своём VPS
+
+Не Supabase: поднимаете `server/` на своём сервере (Docker Compose + Postgres + опционально Caddy).
+
+Подробно: **[docs/vps-api-deploy.md](docs/vps-api-deploy.md)**.
+
+В приложении: **Настройки → Сервер и семья** — URL, регистрация/вход, создать семью или код приглашения. Тема и прочие ключи `mur-calendar-*` остаются локальными; календарь синкается с офлайн-очередью.
 
 ---
 
@@ -80,7 +91,7 @@ Release sideload: `./gradlew assembleRelease` подписан тем же `andr
 
 В Android WebView тап по «Скачать APK» идёт через мост `MurCalendarAndroid.openUrl` → `DownloadManager` (или внешний браузер), а не через внутреннюю загрузку WebView.
 
-Текущая версия приложения в коде: **1.7.5** (`web/index.html` → `APP_VERSION`, Android `versionName`).
+Текущая версия приложения в коде: **1.8.0** (`web/index.html` → `APP_VERSION`, Android `versionName`).
 
 ---
 
@@ -88,6 +99,7 @@ Release sideload: `./gradlew assembleRelease` подписан тем же `andr
 
 | Файл | О чём |
 |------|--------|
+| `docs/vps-api-deploy.md` | деплой API на Ubuntu VPS (Docker, TLS, бэкапы) |
 | `docs/android-apk-notes.md` | APK, виджет, пересборка |
 | `docs/family-sync-and-notifications.md` | семейный sync / уведомления (план) |
 | `docs/calendar-theme-variants.md` | варианты тем |

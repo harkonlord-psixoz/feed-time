@@ -29,13 +29,13 @@
 
 ### Бэкенд: выбор стека
 
-**Рекомендация v1 → v2: Supabase** (Auth + Postgres + Realtime + RLS).
+**Реализовано v1: свой API на VPS пользователя** (`server/` — Node + Postgres + JWT + WebSocket). Деплой: `docs/vps-api-deploy.md`.
 
 | Вариант | Плюсы | Минусы | Вердикт |
 |---------|--------|---------|---------|
-| **Supabase** | Auth, Realtime, RLS «household_id», Edge Functions для пушей, дешёвый старт | Нужно спроектировать таблицы/политики | **Выбор** |
-| Firebase | Auth + FCM «из коробки», Firestore realtime | Сложнее строгие household-правила, vendor lock | Запасной, если упор только на FCM |
-| Свой API | Полный контроль | Долго для семейного MVP | Не для v1 |
+| **Свой API (VPS)** | Полный контроль, данные у пользователя | Нужен сервер и поддержка | **Выбор** |
+| Supabase | Auth, Realtime, RLS, Edge Functions | Чужой хостинг / vendor | Запасной |
+| Firebase | Auth + FCM «из коробки» | Сложнее household-правила | Запасной под пуши |
 
 ### Конфликты
 - Один слот дня: **last-write-wins** по `updatedAt` (UTC) + показ «кто последний отметил».
@@ -125,7 +125,7 @@ WebView **сам по себе** не даёт надёжных фоновых �
 
 | Тема | Решение |
 |------|---------|
-| Бэкенд | **Supabase** (Auth, Postgres, Realtime, RLS, Edge Functions) |
+| Бэкенд | **Свой API на VPS** (`server/`: Auth JWT, Postgres, WebSocket); Supabase — запасной вариант |
 | Auth / семья | Аккаунты + household + invite-код; роли owner/member |
 | Конфликты | LWW по `updatedAt` + `clientId` |
 | Офлайн | Локальная запись → очередь → синк |

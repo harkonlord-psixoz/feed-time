@@ -1,4 +1,4 @@
-# Feed Time — Android APK (v1.7.5)
+# Feed Time — Android APK (v1.8.0)
 
 ## Что собрано
 
@@ -8,10 +8,17 @@
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
-- **Версия:** `1.7.5` (versionCode **14**)
-- **Содержимое:** WebView + виджет + **локальные уведомления** (AlarmManager)
+- **Версия:** `1.8.0` (versionCode **15**)
+- **Содержимое:** WebView + виджет + **локальные уведомления** (AlarmManager) + **семейный синк на свой VPS**
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
-- **Последняя пересборка:** CF-27 прозрачный status bar (edge-to-edge) + CF-25 keystore.
+- **Последняя пересборка:** CF-28/29/30 own-server sync (auth, семья, офлайн-очередь) + cleartext для HTTP VPS.
+
+## Семейный синк на VPS (CF-28–30)
+
+1. В **Настройки → Сервер и семья**: URL API, регистрация/вход, создать/вступить в семью по коду.
+2. Бэкенд: `server/` (Express + Postgres + JWT + WebSocket). Деплой: `docs/vps-api-deploy.md`.
+3. Календарь: LWW по `updatedAt`, `clientId` идемпотентность, очередь в `mur-calendar-sync-queue`; тема и прочие `mur-calendar-*` остаются локальными.
+4. Android: `usesCleartextTraffic` + network security — чтобы можно было указать `http://IP:3080` на этапе настройки.
 
 ## Прозрачный status bar (CF-27)
 
