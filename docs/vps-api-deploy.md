@@ -10,7 +10,7 @@
 
 | Сервис | Роль |
 |--------|------|
-| **api** | Node.js (Express) — auth, семья, синк кормлений, WebSocket `/ws` |
+| **api** | Node.js (Express) — auth, семья, профиль питомцев, синк кормлений, device tokens, WebSocket `/ws` |
 | **db** | Postgres 16 |
 | **caddy** (опционально) | HTTPS + Let’s Encrypt при наличии домена |
 
@@ -206,14 +206,22 @@ curl -sS -X POST https://feed.example.com/api/households \
 | POST | `/api/auth/login` | Вход |
 | POST | `/api/auth/refresh` | Обновление JWT |
 | GET | `/api/auth/me` | Текущий пользователь + семья |
-| POST | `/api/households` | Создать семью |
-| POST | `/api/households/join` | Вступить по коду |
+| POST | `/api/households` | Создать семью (можно сразу `pets` + `updatedAt`) |
+| POST | `/api/households/join` | Вступить по коду (+ опционально migrate профиля LWW) |
 | POST | `/api/households/leave` | Выйти |
+| GET | `/api/households/profile` | Профиль питомцев семьи |
+| PUT | `/api/households/profile` | Upsert профиля (LWW по `updatedAt`) |
 | GET | `/api/feedings?from=&to=` | Выгрузка слотов |
-| POST | `/api/feedings/sync` | Пакетный upsert (LWW + clientId) |
-| WS | `/ws?token=ACCESS` | Живые обновления семьи |
+| POST | `/api/feedings/sync` | Пакетный upsert (LWW + clientId); шлёт `family_feed` |
+| POST | `/api/devices/register` | Реестр устройства (`deviceId`, `platform`, опц. `fcmToken`) |
+| POST | `/api/devices/unregister` | Снять устройство |
+| WS | `/ws?token=ACCESS` | `feeding` / `profile` / `family_feed` |
 
 CORS настроен под веб и Android WebView (`CORS_ORIGIN`).
+
+После `git pull` на VPS: `docker compose up -d --build` и миграции (`npm run migrate` / entrypoint) — нужна **002_household_profile_devices.sql**.
+
+Опционально в `.env`: `FCM_SERVER_KEY=…` (legacy FCM) — фоновые пуши на токены из `device_tokens`. Без ключа семейные оповещения идут по WebSocket, пока приложение/вкладка живы.
 
 ---
 

@@ -2167,7 +2167,7 @@
           <div class="field">
             <div class="sync-box" id="sync-box">
               <h3>Сервер и семья</h3>
-              <p class="sync-status" id="sync-status">Офлайн на устройстве. Укажите URL API, чтобы синхронизировать календарь.</p>
+              <p class="sync-status" id="sync-status">Офлайн на устройстве. Укажите URL API, чтобы синхронизировать календарь и профиль питомцев.</p>
 
               <div class="field">
                 <label for="sync-server-url">URL сервера (API)</label>
@@ -2260,9 +2260,9 @@
         <ul class="settings-list">
           <li>Светлая / тёмная тема — в боковом меню (солнце / луна)</li>
           <li>Палитра — выше на этом экране; число слотов — на «Главной»</li>
-          <li>Оповещения: Android — локальные (AlarmManager); веб — план Notification API</li>
+          <li>Оповещения: локальные напоминания + семейные при кормлении (WebSocket; FCM опционально)</li>
           <li>Интервал напоминаний 3–4 ч и тихие часы 23:00–06:00 — см. docs</li>
-          <li>Семейный синк — свой VPS API (не Supabase); офлайн-очередь + localStorage</li>
+          <li>Семейный синк — VPS API: календарь + профиль питомцев (LWW), офлайн-очередь</li>
         </ul>
       </section>
     </div>
@@ -2347,7 +2347,9 @@
       const SYNC_SESSION_KEY = "mur-calendar-sync-session";
       const SYNC_QUEUE_KEY = "mur-calendar-sync-queue";
       const SYNC_CLIENT_IDS_KEY = "mur-calendar-sync-client-ids";
-      const APP_VERSION = "1.8.0";
+      const PROFILE_UPDATED_AT_KEY = "mur-calendar-profile-updated-at";
+      const SYNC_DEVICE_ID_KEY = "mur-calendar-sync-device-id";
+      const APP_VERSION = "1.9.0";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Default API for browser/APK when localStorage empty; meta allows host-specific override. */
@@ -2553,13 +2555,34 @@
         return getPets().length || 1;
       }
 
-      function savePetProfile() {
+      function touchProfileUpdatedAt() {
+        var iso = new Date().toISOString();
+        try {
+          localStorage.setItem(PROFILE_UPDATED_AT_KEY, iso);
+        } catch (e) {}
+        return iso;
+      }
+
+      function getProfileUpdatedAt() {
+        try {
+          var raw = localStorage.getItem(PROFILE_UPDATED_AT_KEY);
+          if (raw) return raw;
+        } catch (e) {}
+        return touchProfileUpdatedAt();
+      }
+
+      function savePetProfile(opts) {
+        var skipRemote = opts && opts.skipRemote;
         try {
           localStorage.setItem(PROFILE_KEY, JSON.stringify({
             version: 2,
             pets: normalizePets(getPets(), petCount())
           }));
         } catch (e) {}
+        if (!skipRemote) {
+          touchProfileUpdatedAt();
+          scheduleProfileSync();
+        }
         syncAndroidBridge();
         syncFeedNotifications();
       }
@@ -4071,6 +4094,23 @@
         showToast(body);
       }
 
+      function notifyFamilyFed(body, dedupeKey) {
+        var text = body || "В семье отметили кормление";
+        if (dedupeKey) {
+          if (!window.__murFamilyNotifSeen) window.__murFamilyNotifSeen = {};
+          if (window.__murFamilyNotifSeen[dedupeKey]) return;
+          window.__murFamilyNotifSeen[dedupeKey] = Date.now();
+        }
+        try {
+          if (window.MurCalendarAndroid && typeof window.MurCalendarAndroid.notifyFamilyFed === "function") {
+            window.MurCalendarAndroid.notifyFamilyFed(text);
+            return;
+          }
+        } catch (e) {}
+        webNotify("Feed Time · семья", text, "mur-family-fed");
+        showToast(text);
+      }
+
       function syncFeedNotifications() {
         var lastMs = getLastFeedAtMs();
         var reminder = notifReminderBody();
@@ -4331,6 +4371,9 @@
       var syncWs = null;
       var syncWsRetry = null;
       var syncApplyingRemote = false;
+      var profileSyncTimer = null;
+      var profileSyncing = false;
+      var profileApplyingRemote = false;
 
       function uuid4() {
         if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -4418,6 +4461,149 @@
           saveSyncClientIds();
         }
         return syncClientIds[k];
+      }
+
+      function getOrCreateDeviceId() {
+        try {
+          var existing = localStorage.getItem(SYNC_DEVICE_ID_KEY);
+          if (existing) return existing;
+          var id = uuid4();
+          localStorage.setItem(SYNC_DEVICE_ID_KEY, id);
+          return id;
+        } catch (e) {
+          return uuid4();
+        }
+      }
+
+      function detectSyncPlatform() {
+        try {
+          if (typeof window.MurCalendarAndroid !== "undefined") return "android";
+          if (/Android/i.test(navigator.userAgent || "")) return "android";
+        } catch (e) {}
+        return "web";
+      }
+
+      function localPetsPayload() {
+        return {
+          version: 2,
+          pets: normalizePets(getPets(), petCount())
+        };
+      }
+
+      function scheduleProfileSync() {
+        if (profileApplyingRemote) return;
+        if (!syncSession || !syncSession.household) return;
+        if (profileSyncTimer) clearTimeout(profileSyncTimer);
+        profileSyncTimer = setTimeout(function () {
+          pushHouseholdProfile().catch(function () {});
+        }, 500);
+      }
+
+      function applyRemoteProfile(profile, opts) {
+        if (!profile || !profile.pets) return;
+        var skipUi = opts && opts.skipUi;
+        var remoteAt = profile.updatedAt ? new Date(profile.updatedAt).getTime() : 0;
+        var localAt = 0;
+        try {
+          var raw = localStorage.getItem(PROFILE_UPDATED_AT_KEY);
+          if (raw) localAt = new Date(raw).getTime();
+        } catch (e) {}
+        if (remoteAt && localAt && remoteAt < localAt && !(opts && opts.force)) {
+          return;
+        }
+        var petsObj = profile.pets;
+        var list = Array.isArray(petsObj.pets) ? petsObj.pets : (Array.isArray(petsObj) ? petsObj : null);
+        if (!list) return;
+        profileApplyingRemote = true;
+        try {
+          petProfile = {
+            version: 2,
+            pets: normalizePets(list, Math.min(PET_COUNT_MAX, Math.max(1, list.length)))
+          };
+          try {
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(petProfile));
+            if (profile.updatedAt) {
+              localStorage.setItem(PROFILE_UPDATED_AT_KEY, profile.updatedAt);
+            }
+          } catch (e) {}
+          if (!skipUi) {
+            renderPetCountControl();
+            renderPetNameFields();
+            applyPetCopy();
+            syncAndroidBridge();
+            syncFeedNotifications();
+          }
+        } finally {
+          profileApplyingRemote = false;
+        }
+      }
+
+      async function pushHouseholdProfile() {
+        if (profileSyncing) return;
+        if (!syncSession || !syncSession.household) return;
+        profileSyncing = true;
+        try {
+          var data = await apiFetch("/api/households/profile", {
+            method: "PUT",
+            body: {
+              pets: localPetsPayload(),
+              updatedAt: getProfileUpdatedAt()
+            }
+          });
+          if (data && data.profile) {
+            if (data.applied) {
+              if (data.profile.updatedAt) {
+                try {
+                  localStorage.setItem(PROFILE_UPDATED_AT_KEY, data.profile.updatedAt);
+                } catch (e) {}
+              }
+            } else {
+              applyRemoteProfile(data.profile, { force: true });
+            }
+          }
+        } catch (e) {
+          /* keep local; retry later */
+        } finally {
+          profileSyncing = false;
+        }
+      }
+
+      async function pullHouseholdProfile() {
+        if (!syncSession || !syncSession.household) return;
+        var data = await apiFetch("/api/households/profile");
+        if (data && data.profile) applyRemoteProfile(data.profile);
+      }
+
+      /**
+       * On create/join: migrate localStorage pets with LWW; then pull winner.
+       */
+      async function migrateAndSyncProfile(mode, extraBody) {
+        if (!syncSession || !syncSession.household) return;
+        var body = Object.assign(
+          {
+            pets: localPetsPayload(),
+            updatedAt: getProfileUpdatedAt()
+          },
+          extraBody || {}
+        );
+        if (mode === "put") {
+          await apiFetch("/api/households/profile", { method: "PUT", body: body });
+        }
+        await pullHouseholdProfile();
+      }
+
+      async function registerSyncDevice() {
+        if (!syncSession || !syncSession.accessToken) return;
+        try {
+          await apiFetch("/api/devices/register", {
+            method: "POST",
+            body: {
+              deviceId: getOrCreateDeviceId(),
+              platform: detectSyncPlatform(),
+              fcmToken: null
+            }
+          });
+        } catch (e) {}
       }
 
       function normalizeApiBase(url) {
@@ -4642,11 +4828,21 @@
         syncWs.onmessage = function (ev) {
           try {
             var msg = JSON.parse(ev.data);
-            if (msg && msg.type === "feeding" && msg.feeding) {
+            if (!msg || !msg.type) return;
+            if (msg.type === "feeding" && msg.feeding) {
               applyRemoteFeeding(msg.feeding, false);
               updateSyncStatusUi();
+            } else if (msg.type === "profile" && msg.profile) {
+              applyRemoteProfile(msg.profile, { force: true });
+            } else if (msg.type === "family_feed") {
+              handleFamilyFeedMessage(msg);
+            } else if (msg.type === "hello") {
+              registerSyncDevice();
             }
           } catch (e) {}
+        };
+        syncWs.onopen = function () {
+          registerSyncDevice();
         };
         syncWs.onclose = function () {
           syncWs = null;
@@ -4654,6 +4850,17 @@
             syncWsRetry = setTimeout(openSyncWs, 4000);
           }
         };
+      }
+
+      function handleFamilyFeedMessage(msg) {
+        var myId = syncSession && syncSession.user && syncSession.user.id;
+        if (msg.actorUserId && myId && String(msg.actorUserId) === String(myId)) {
+          return;
+        }
+        var dedupe =
+          (msg.feeding && (msg.feeding.id || msg.feeding.clientId)) ||
+          (msg.body || "") + "|" + (msg.actorName || "");
+        notifyFamilyFed(msg.body || "", dedupe);
       }
 
       function updateSyncStatusUi() {
@@ -4718,9 +4925,14 @@
           if (me && me.household) {
             syncSession.household = me.household;
             saveSyncSession(syncSession);
+            if (me.household.profile) {
+              applyRemoteProfile(me.household.profile);
+            }
+            await migrateAndSyncProfile("put");
             queueLocalTimesForImport();
             await flushSyncQueue();
             await pullAllFeedings();
+            await registerSyncDevice();
             openSyncWs();
           }
         } catch (e) {}
@@ -4817,16 +5029,24 @@
                 "Семья";
               var data = await apiFetch("/api/households", {
                 method: "POST",
-                body: { name: name }
+                body: {
+                  name: name,
+                  pets: localPetsPayload(),
+                  updatedAt: getProfileUpdatedAt()
+                }
               });
               syncSession.household = data.household;
               saveSyncSession(syncSession);
+              if (data.household && data.household.profile) {
+                applyRemoteProfile(data.household.profile, { force: true });
+              }
               queueLocalTimesForImport();
               await flushSyncQueue();
               await pullAllFeedings();
+              await registerSyncDevice();
               openSyncWs();
               updateSyncStatusUi();
-              showToast("Семья создана");
+              showToast("Семья создана · профиль питомцев в облаке");
             } catch (e) {
               showToast(e.message || "Не удалось создать семью");
             }
@@ -4842,16 +5062,26 @@
                 .toUpperCase();
               var data = await apiFetch("/api/households/join", {
                 method: "POST",
-                body: { inviteCode: code }
+                body: {
+                  inviteCode: code,
+                  pets: localPetsPayload(),
+                  updatedAt: getProfileUpdatedAt()
+                }
               });
               syncSession.household = data.household;
               saveSyncSession(syncSession);
+              if (data.household && data.household.profile) {
+                applyRemoteProfile(data.household.profile, { force: true });
+              } else {
+                await pullHouseholdProfile();
+              }
               queueLocalTimesForImport();
               await flushSyncQueue();
               await pullAllFeedings();
+              await registerSyncDevice();
               openSyncWs();
               updateSyncStatusUi();
-              showToast("Вы в семье");
+              showToast("Вы в семье · профиль синхронизирован");
             } catch (e) {
               showToast(e.message || "Не удалось вступить");
             }
@@ -4878,8 +5108,11 @@
         if (syncNowBtn) {
           syncNowBtn.addEventListener("click", async function () {
             try {
+              await pushHouseholdProfile();
+              await pullHouseholdProfile();
               await flushSyncQueue();
               await pullAllFeedings();
+              await registerSyncDevice();
               openSyncWs();
               showToast("Синхронизация завершена");
             } catch (e) {
@@ -4890,8 +5123,10 @@
 
         updateSyncStatusUi();
         if (syncSession && syncSession.household) {
+          pullHouseholdProfile().catch(function () {});
           flushSyncQueue().catch(function () {});
           pullAllFeedings().catch(function () {});
+          registerSyncDevice().catch(function () {});
           openSyncWs();
         }
         window.addEventListener("online", function () {

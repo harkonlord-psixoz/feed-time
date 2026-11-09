@@ -109,17 +109,25 @@ router.get(
       return res.status(404).json({ error: "Пользователь не найден" });
     }
     const membership = await loadMembership(req.user.id);
+    let household = null;
+    if (membership) {
+      const profileRes = await query(
+        `SELECT pets_json, pets_updated_at FROM households WHERE id = $1`,
+        [membership.household_id]
+      );
+      const { mapProfile } = require("../profile");
+      household = {
+        id: membership.household_id,
+        name: membership.name,
+        role: membership.role,
+        inviteCode: membership.invite_code,
+        ownerId: membership.owner_id,
+        profile: mapProfile(profileRes.rows[0]),
+      };
+    }
     res.json({
       user: publicUser(userRes.rows[0]),
-      household: membership
-        ? {
-            id: membership.household_id,
-            name: membership.name,
-            role: membership.role,
-            inviteCode: membership.invite_code,
-            ownerId: membership.owner_id,
-          }
-        : null,
+      household,
     });
   })
 );

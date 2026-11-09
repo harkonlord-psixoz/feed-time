@@ -3,6 +3,7 @@
 const express = require("express");
 const { query, withClient } = require("../db");
 const hub = require("../hub");
+const { broadcastFamilyFeed } = require("../notify");
 const {
   asyncHandler,
   requireAuth,
@@ -222,6 +223,7 @@ router.post(
               type: "feeding",
               feeding: outcome.feeding,
             });
+            broadcastFamilyFeed(householdId, outcome.feeding, req.user);
           }
         } catch (err) {
           await client.query("ROLLBACK");

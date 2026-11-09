@@ -56,8 +56,8 @@
 
 ## 2. Уведомления
 
-### Триггеры (локальные v1.7.1 + семейные позже)
-Фразы собирает JS (те же падежи, что чип/приветствия); Android показывает готовый текст.
+### Триггеры (локальные + семейные A с v1.9)
+Фразы C/B/H/M собирает JS (те же падежи, что чип/приветствия); Android показывает готовый текст. Семейное A — текст с сервера.
 
 | # | Событие | Кому | Текст (пример) |
 |---|---------|------|----------------|
@@ -65,24 +65,31 @@
 | **B** | Нет кормления ~3.5 ч | Это устройство | «Пора покормить Лию!» (вин.) |
 | **H** | Нет кормления >5 ч | Это устройство | «Лия совсем проголодалась!» (им. + род глагола) |
 | **M** | Утро 06:15 | Это устройство | «Доброе утро! Не забудьте покормить Лию.» (вин.) |
-| **A** | После записи кормления (семья, позже) | Всем в household, **кроме** автора | «Мама: коты покормлены в 08:15» |
+| **A** | После синка кормления (семья, v1.9) | Всем в household, **кроме** автора | «Мама: питомцев покормили в 08:15» |
 
 ### Тихие часы и интервал (сейчас / потом)
 - **Сейчас (локально):** тихие часы **23:00–06:00** — срабатывания сдвигаются на **06:15**; напоминание **~3.5 ч**, «голод» **5 ч**.
 - **Потом (настройки семьи/устройства):** `quietStart` / `quietEnd`, `reminderHours` в диапазоне **3–4 ч** (и опционально порог «голод»), `timezone` (IANA). Пока UI настройки интервала нет — константы в `FeedReminderScheduler` + JS `syncFeedNotifications`.
 - Семейные серверные расчёты — в UTC; отображение — в TZ семьи.
 
-### Android (APK = WebView + нативный AlarmManager) — v1.7
-WebView **сам по себе** не даёт надёжных фоновых пушей. Реализация:
+### Android (APK = WebView + нативный AlarmManager) — v1.9
+WebView **сам по себе** не даёт надёжных фоновых пушей без FCM. Реализация:
 
-1. **Сделано:** JS-мост `MurCalendarAndroid.notifyJustFed(body)` / `scheduleFeedReminders(lastMs, reminder, hungry, morning)` → `FeedNotifier` + `FeedReminderScheduler` (`AlarmManager.setAndAllowWhileIdle`) + `FeedAlarmReceiver` (в т.ч. после BOOT). Падежи только в JS.
-2. Канал `mur_feeding`; runtime `POST_NOTIFICATIONS` (API 33+).
-3. **Ограничения WebView:** таймеры JS живут только пока процесс/вкладка живы; Doze/OEM могут откладывать exact alarms; без FCM нет доставки «с сервера» другим членам семьи.
-4. **Дальше:** Capacitor/FCM + Supabase Edge для семейного A и страховочного B; интервал 3–4 ч — в Настройки.
+1. **Локальные C/B/H/M:** JS-мост `notifyJustFed` / `scheduleFeedReminders` → `FeedNotifier` + `FeedReminderScheduler` + `FeedAlarmReceiver`.
+2. **Семейное A (пока приложение живо):** сервер после `/api/feedings/sync` шлёт WS `family_feed`; клиент вызывает `MurCalendarAndroid.notifyFamilyFed(body)` (или web Notification). Автор события пропускается; дедуп по `feeding.id` / `clientId`.
+3. **Реестр устройств:** `POST /api/devices/register` (`deviceId`, `platform`, опц. `fcmToken`).
+4. **FCM (фон, опционально):** на сервере `FCM_SERVER_KEY` → legacy HTTP FCM на токены семьи. В debug APK полный FCM требует Firebase project + `google-services.json` + SDK — не зашито в sideload без проекта сэра. Когда ключ и токены появятся, сервер уже готов слать; клиент должен передавать `fcmToken` при register.
+5. Канал `mur_feeding`; runtime `POST_NOTIFICATIONS` (API 33+).
 
-### Web (план + хуки v1.7)
-- **Сейчас:** при разрешении `Notification` — stub `webNotify` + `setTimeout` (только открытая вкладка); запрос permission при старте.
-- **Позже (v2):** Web Push + VAPID + SW; те же тексты C/B/H/M; quiet hours на клиенте до появления сервера.
+### Профиль питомцев в семье (v1.9)
+- Поля семьи: `pets_json` + `pets_updated_at` (LWW).
+- При **создании/вступлении** клиент отправляет локальный `mur-calendar-profile` + `updatedAt`; сервер мержит LWW.
+- Правки в Профиле debounce → `PUT /api/households/profile`; WS `profile` обновляет остальные устройства.
+- Тема и UI-настройки остаются локальными.
+
+### Web
+- Notification API + WS wake для A (вкладка открыта).
+- **Позже:** Web Push + VAPID + SW для фона.
 
 ### Антиспам
 - A: не чаще 1 раза на одно событие кормления; не слать автору.
@@ -129,7 +136,8 @@ WebView **сам по себе** не даёт надёжных фоновых �
 | Auth / семья | Аккаунты + household + invite-код; роли owner/member |
 | Конфликты | LWW по `updatedAt` + `clientId` |
 | Офлайн | Локальная запись → очередь → синк |
-| Уведомление A | FCM семье после кормления (не автору) |
+| Уведомление A | WS `family_feed` (+ опц. FCM при `FCM_SERVER_KEY`) всем кроме автора |
+| Профиль питомцев | LWW `pets_json` / `pets_updated_at`; migrate из localStorage при create/join |
 | Уведомление B | Интервал 3–4 ч; local schedule + серверный страховочный cron; quiet hours + TZ |
 | Оболочка Android | WebView APK → **Capacitor** для пушей |
 | Миграция | Импорт `mur-calendar-times` при первом входе в семью |

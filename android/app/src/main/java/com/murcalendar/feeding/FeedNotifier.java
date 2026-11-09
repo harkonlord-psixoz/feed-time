@@ -20,6 +20,8 @@ public final class FeedNotifier {
     public static final int ID_REMINDER = 4102;
     public static final int ID_HUNGRY = 4103;
     public static final int ID_MORNING = 4104;
+    /** Family sync: someone else fed the pets (WS wake / future FCM). */
+    public static final int ID_FAMILY_FED = 4105;
 
     private FeedNotifier() {}
 
@@ -74,5 +76,13 @@ public final class FeedNotifier {
                 ? "Питомца покормили только что"
                 : body.trim();
         show(context, ID_JUST_FED, "Feed Time", text);
+    }
+
+    /** Cross-device: another household member recorded a feeding. */
+    public static void familyFed(Context context, String body) {
+        String text = (body == null || body.trim().isEmpty())
+                ? "В семье отметили кормление"
+                : body.trim();
+        show(context, ID_FAMILY_FED, "Feed Time · семья", text);
     }
 }
