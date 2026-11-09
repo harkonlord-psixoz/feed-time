@@ -2,16 +2,16 @@
 
 ## Что собрано
 
-- **Файл:** [mur-calendar.apk](./mur-calendar.apk)  
-  Абсолютный путь: `/cursor/stores/self/docs/mur-calendar.apk`  
-  В репозитории: `releases/mur-calendar.apk`
+- **Файл:** [feed-time.apk](./feed-time.apk)  
+  Абсолютный путь: `/cursor/stores/self/docs/feed-time.apk`  
+  В репозитории: `releases/feed-time.apk`
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
 - **Версия:** `1.7.4` (versionCode **13**)
 - **Содержимое:** WebView + виджет + **локальные уведомления** (AlarmManager)
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
-- **Последняя пересборка:** CF-25 keystore + отображаемое имя **Feed Time** (package `com.murcalendar.feeding` без изменений; все APK — один keystore).
+- **Последняя пересборка:** CF-25 keystore + имя **Feed Time** + CF-24 скачивание APK из обновлений.
 
 ## Подпись APK и ошибка «конфликтует с другим пакетом» (CF-25)
 
@@ -28,7 +28,7 @@ Android не даёт обновить приложение, если новый
 Если уже стоит старая сборка с другим сертификатом:
 
 1. **Удалите** «Feed Time» (или старое «Мур-календарь») (данные localStorage WebView сбросятся).
-2. Установите новый `mur-calendar.apk` (v1.7.4+).
+2. Установите новый `feed-time.apk` (v1.7.4+).
 3. Дальнейшие обновления с тем же keystore ставятся **поверх** без удаления.
 
 ### Важно для сборщиков
@@ -36,6 +36,7 @@ Android не даёт обновить приложение, если новый
 - **Никогда не перегенерируйте** `android/mur-calendar-debug.keystore`. Новый ключ = снова конфликт у всех, у кого уже стоит APK с текущим сертификатом.
 - SHA-256 сертификата (для проверки): `FA:B5:C4:F7:7D:4B:51:7F:C4:ED:A0:BB:70:46:F9:F0:FD:0B:6B:25:78:E9:84:0F:59:9F:92:CC:1B:3C:27:19`
 - Пароли debug-keystore (не секрет Play Store, только sideload): store/key `murcalendar`.
+
 
 ## Падежи в оповещениях и чистый профиль (CF-22)
 
@@ -58,13 +59,15 @@ Android не даёт обновить приложение, если новый
 3. Web: stub Notification API + timers (только открытая вкладка) — см. `family-sync-and-notifications.md`.
 4. **Потом:** настройка интервала 3–4 ч в UI.
 
-## Проверка обновлений (CF-18)
+## Проверка обновлений (CF-18 → CF-24)
 
 1. Меню → **Настройки**: поле PAT (localStorage, опционально) и кнопка **«Проверить обновления»**.
 2. Запрос: `https://api.github.com/repos/harkonlord-psixoz/feed-time/releases/latest` (`Authorization: Bearer …` если токен задан).
 3. UI показывает текущую `APP_VERSION` vs `tag_name`, ссылку на релиз и APK-asset (если прикреплён).
 4. WebView: `AllowUniversalAccessFromFileURLs` — чтобы fetch с `file:///android_asset/` доходил до api.github.com.
-5. Секреты в git не коммитить (см. `.gitignore`: `.env`, чужие keystore, `local.properties`). Исключение: стабильный `android/mur-calendar-debug.keystore` (CF-25).
+5. **CF-24:** тап «Скачать APK» / «Открыть релиз» в WebView больше не глотается: JS вызывает `MurCalendarAndroid.openUrl(url)`; нативно — `DownloadManager` для `.apk` (файл в «Загрузки») или `ACTION_VIEW` во внешнем браузере; запасной путь — `shouldOverrideUrlLoading` + `DownloadListener` в `MainActivity`.
+6. Секреты в git не коммитить (см. `.gitignore`: `.env`, чужие keystore, `local.properties`). Исключение: стабильный `android/mur-calendar-debug.keystore` (CF-25).
+
 
 ## Падежи и скролл списков (CF-16)
 
@@ -126,7 +129,7 @@ Android не даёт обновить приложение, если новый
 
 ## Установка (sideload)
 
-1. Скопируйте `mur-calendar.apk` на телефон (USB, Telegram, облако и т.п.).
+1. Скопируйте `feed-time.apk` на телефон (USB, Telegram, облако и т.п.).
 2. Разрешите установку из неизвестных источников для того приложения, из которого открываете файл (Файлы / Chrome / Telegram):  
    **Настройки → Безопасность → Установка неизвестных приложений** (формулировки зависят от производителя).
 3. Откройте APK → **Установить**. Если система пишет «конфликтует с другим пакетом» — сначала удалите старое приложение (см. раздел CF-25 выше), затем поставьте снова. После перехода на стабильный ключ обновления поверх сохраняют данные.
