@@ -7,8 +7,9 @@ android/app/build/
 .idea/
 .DS_Store
 
-# Secrets — never commit
+# Secrets — never commit (except the checked-in stable debug keystore)
 *.jks
 *.keystore
+!android/mur-calendar-debug.keystore
 local.properties
 .env

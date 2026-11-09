@@ -1,17 +1,41 @@
-# Мур-календарь — Android APK (v1.7.1)
+# Мур-календарь — Android APK (v1.7.3)
 
 ## Что собрано
 
 - **Файл:** [mur-calendar.apk](./mur-calendar.apk)  
   Абсолютный путь: `/cursor/stores/self/docs/mur-calendar.apk`  
   В репозитории: `releases/mur-calendar.apk`
-- **Тип:** debug APK (подписан debug-ключом Gradle, можно ставить sideload)
+- **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Мур-календарь
-- **Версия:** `1.7.1` (versionCode **10**)
+- **Версия:** `1.7.3` (versionCode **12**)
 - **Содержимое:** WebView + виджет + **локальные уведомления** (AlarmManager)
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
-- **Последняя пересборка:** CF-22 — падежи в оповещениях + скрытие месяц/год на Профиле/Настройках.
+- **Последняя пересборка:** CF-25 — стабильный ключ подписи APK (все debug/release-debug APK подписаны одним keystore).
+
+## Подпись APK и ошибка «конфликтует с другим пакетом» (CF-25)
+
+Android не даёт обновить приложение, если новый APK подписан **другим** сертификатом (`INSTALL_FAILED_UPDATE_INCOMPATIBLE` / «приложение конфликтует с другим пакетом…»). Раньше каждый агент/машина подписывал debug-сборку своим локальным `~/.android/debug.keystore` — отсюда конфликт при обновлении.
+
+### Что сделано
+
+1. В репозитории зафиксирован keystore: `android/mur-calendar-debug.keystore` (alias `murcalendardebug`).
+2. В `android/app/build.gradle` оба типа сборки (`debug` и `release`) используют `signingConfigs.murDebug`.
+3. В `.gitignore` есть исключение `!android/mur-calendar-debug.keystore` — этот файл **коммитится**; остальные `*.keystore` / `*.jks` по-прежнему игнорируются.
+
+### Одноразово на телефоне
+
+Если уже стоит старая сборка с другим сертификатом:
+
+1. **Удалите** «Мур-календарь» (данные localStorage WebView сбросятся).
+2. Установите новый `mur-calendar.apk` (v1.7.3+).
+3. Дальнейшие обновления с тем же keystore ставятся **поверх** без удаления.
+
+### Важно для сборщиков
+
+- **Никогда не перегенерируйте** `android/mur-calendar-debug.keystore`. Новый ключ = снова конфликт у всех, у кого уже стоит APK с текущим сертификатом.
+- SHA-256 сертификата (для проверки): `FA:B5:C4:F7:7D:4B:51:7F:C4:ED:A0:BB:70:46:F9:F0:FD:0B:6B:25:78:E9:84:0F:59:9F:92:CC:1B:3C:27:19`
+- Пароли debug-keystore (не секрет Play Store, только sideload): store/key `murcalendar`.
 
 ## Падежи в оповещениях и чистый профиль (CF-22)
 
@@ -40,7 +64,7 @@
 2. Запрос: `https://api.github.com/repos/harkonlord-psixoz/feed-time/releases/latest` (`Authorization: Bearer …` если токен задан).
 3. UI показывает текущую `APP_VERSION` vs `tag_name`, ссылку на релиз и APK-asset (если прикреплён).
 4. WebView: `AllowUniversalAccessFromFileURLs` — чтобы fetch с `file:///android_asset/` доходил до api.github.com.
-5. Секреты в git не коммитить (см. `.gitignore`: `.env`, keystore, `local.properties`).
+5. Секреты в git не коммитить (см. `.gitignore`: `.env`, чужие keystore, `local.properties`). Исключение: стабильный `android/mur-calendar-debug.keystore` (CF-25).
 
 ## Падежи и скролл списков (CF-16)
 
@@ -105,7 +129,7 @@
 1. Скопируйте `mur-calendar.apk` на телефон (USB, Telegram, облако и т.п.).
 2. Разрешите установку из неизвестных источников для того приложения, из которого открываете файл (Файлы / Chrome / Telegram):  
    **Настройки → Безопасность → Установка неизвестных приложений** (формулировки зависят от производителя).
-3. Откройте APK → **Установить** (при обновлении поверх v1 — данные localStorage WebView обычно сохраняются).
+3. Откройте APK → **Установить**. Если система пишет «конфликтует с другим пакетом» — сначала удалите старое приложение (см. раздел CF-25 выше), затем поставьте снова. После перехода на стабильный ключ обновления поверх сохраняют данные.
 4. При предупреждении о debug/неизвестном издателе — это нормально для debug-сборки.
 
 Минимальная версия Android: **7.0 (API 24)**.
@@ -136,7 +160,7 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 # APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Release (позже): `./gradlew assembleRelease` + свой keystore (сейчас не настроен).
+Release sideload: `./gradlew assembleRelease` — тоже подписан `mur-calendar-debug.keystore` (тот же сертификат, что debug). Для Google Play понадобится отдельный release-keystore (не коммитить).
 
 ## Вёрстка web vs app (CF-12)
 

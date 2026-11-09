@@ -53,7 +53,7 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 # → app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Release: `./gradlew assembleRelease` + свой keystore (пока не настроен).
+Release sideload: `./gradlew assembleRelease` подписан тем же `android/mur-calendar-debug.keystore` (CF-25). Для Play Store — отдельный keystore.
 
 Подробнее: `docs/android-apk-notes.md`.
 
@@ -78,7 +78,7 @@ Release: `./gradlew assembleRelease` + свой keystore (пока не наст
 
 После публикации «Проверить обновления» покажет tag, ссылку на релиз и прямую ссылку на APK.
 
-Текущая версия приложения в коде: **1.7.0** (`web/index.html` → `APP_VERSION`, Android `versionName`).
+Текущая версия приложения в коде: **1.7.3** (`web/index.html` → `APP_VERSION`, Android `versionName`).
 
 ---
 
