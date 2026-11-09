@@ -1,4 +1,4 @@
-# Мур-календарь — Android APK (v1.7.1)
+# Мур-календарь — Android APK (v1.7.2)
 
 ## Что собрано
 
@@ -8,10 +8,10 @@
 - **Тип:** debug APK (подписан debug-ключом Gradle, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Мур-календарь
-- **Версия:** `1.7.1` (versionCode **10**)
+- **Версия:** `1.7.2` (versionCode **11**)
 - **Содержимое:** WebView + виджет + **локальные уведомления** (AlarmManager)
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
-- **Последняя пересборка:** CF-22 — падежи в оповещениях + скрытие месяц/год на Профиле/Настройках.
+- **Последняя пересборка:** CF-24 — скачивание APK из «Проверить обновления» в WebView (DownloadManager / браузер).
 
 ## Падежи в оповещениях и чистый профиль (CF-22)
 
@@ -34,13 +34,14 @@
 3. Web: stub Notification API + timers (только открытая вкладка) — см. `family-sync-and-notifications.md`.
 4. **Потом:** настройка интервала 3–4 ч в UI.
 
-## Проверка обновлений (CF-18)
+## Проверка обновлений (CF-18 → CF-24)
 
 1. Меню → **Настройки**: поле PAT (localStorage, опционально) и кнопка **«Проверить обновления»**.
 2. Запрос: `https://api.github.com/repos/harkonlord-psixoz/feed-time/releases/latest` (`Authorization: Bearer …` если токен задан).
 3. UI показывает текущую `APP_VERSION` vs `tag_name`, ссылку на релиз и APK-asset (если прикреплён).
 4. WebView: `AllowUniversalAccessFromFileURLs` — чтобы fetch с `file:///android_asset/` доходил до api.github.com.
-5. Секреты в git не коммитить (см. `.gitignore`: `.env`, keystore, `local.properties`).
+5. **CF-24:** тап «Скачать APK» / «Открыть релиз» в WebView больше не глотается: JS вызывает `MurCalendarAndroid.openUrl(url)`; нативно — `DownloadManager` для `.apk` (файл в «Загрузки») или `ACTION_VIEW` во внешнем браузере; запасной путь — `shouldOverrideUrlLoading` + `DownloadListener` в `MainActivity`.
+6. Секреты в git не коммитить (см. `.gitignore`: `.env`, keystore, `local.properties`).
 
 ## Падежи и скролл списков (CF-16)
 
