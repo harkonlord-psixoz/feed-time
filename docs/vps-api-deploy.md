@@ -303,11 +303,107 @@ npm run dev
 
 ## 12. Клиент
 
-В приложении Feed Time → **Настройки → Сервер и семья**:
+### Браузер vs API (важно)
 
-1. URL сервера (`https://feed.example.com` или `http://IP:3080`)
+| Что | URL (пример на VPS HarkonLord) | Кто открывает |
+|-----|--------------------------------|---------------|
+| **Веб-UI** (статический `web/`) | `https://app.harkonlord.su` (или путь на сайте) | люди **без APK** в браузере |
+| **API** (Node на :3080 за nginx) | `http://api.harkonlord.su` | приложение / веб-UI в настройках синка |
+
+Сайт и API — **разные** origin’ы. В UI поле «URL сервера» — это **только API**, не адрес страницы календаря.
+
+На текущем VPS:
+
+- **443** занят **Xray** → API отдаём по **HTTP** (`http://api.harkonlord.su` → nginx → `127.0.0.1:3080`), не через HTTPS на том же порту.
+- Клиент Feed Time (веб и Android WebView) умеет cleartext HTTP к своему VPS.
+- Дефолт в `web/index.html`: meta `feed-time-default-api` = `http://api.harkonlord.su` (если в `localStorage` ещё нет своего URL).
+
+В приложении / на сайте → **Настройки → Сервер и семья**:
+
+1. URL API (`http://api.harkonlord.su` по умолчанию; или свой `http://IP:3080` / HTTPS-домен)
 2. Регистрация / вход
 3. Создать семью или ввести invite-код
 4. Календарь синкается (офлайн-очередь + `localStorage`); тема и прочие `mur-calendar-*` ключи остаются локальными
 
 Подробнее о модели данных: `docs/family-sync-and-notifications.md` (бэкенд в v1 — свой API на VPS, не Supabase).
+
+---
+
+## 13. Статический веб-клиент (nginx), не ломая placeholder на apex
+
+Исходники UI: каталог **`web/`** в репозитории (один `index.html`, без сборки). Тот же файл кладётся в Android `assets/`.
+
+**Рекомендация:** отдельный поддомен `app.harkonlord.su` (или `feed.harkonlord.su`), чтобы корневой `harkonlord.su` с placeholder-шаблоном не трогать.
+
+### 13.1. Файлы на сервере
+
+```bash
+# если репо уже в /opt/feed-time (как для API):
+sudo mkdir -p /var/www/feed-time
+sudo rsync -a --delete /opt/feed-time/web/ /var/www/feed-time/
+# после git pull + обновления UI:
+# sudo rsync -a --delete /opt/feed-time/web/ /var/www/feed-time/
+```
+
+DNS: A-запись `app` → IP VPS (как у apex / api).
+
+### 13.2. nginx — поддомен приложения (предпочтительно)
+
+Новый сайт, **не** меняя root у `harkonlord.su`:
+
+```nginx
+# /etc/nginx/sites-available/feed-time-web
+server {
+  listen 80;
+  listen [::]:80;
+  server_name app.harkonlord.su;
+
+  root /var/www/feed-time;
+  index index.html;
+
+  # SPA-ish single page: всё на index.html
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+
+  # долгий кэш только если добавите хешированные ассеты; пока HTML лучше без агрессивного кэша
+  location = /index.html {
+    add_header Cache-Control "no-cache";
+  }
+}
+```
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/feed-time-web /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Если для apex уже есть HTTPS/сертификат и **443 свободен для nginx** — можно добавить `listen 443 ssl` с тем же `root`. Пока 443 держит Xray, пользователям достаточно **HTTP** на `app.` или TLS на другом порту/CDN — как решите на VPS.
+
+`CORS_ORIGIN` у API: `*` (как в `.env.example`) или явный список с origin веб-UI, например:
+
+```bash
+CORS_ORIGIN=http://app.harkonlord.su,https://app.harkonlord.su,http://harkonlord.su,https://harkonlord.su
+```
+
+### 13.3. Альтернатива — путь на существующем сайте
+
+Если не хотите поддомен, можно отдать UI с пути, **не затирая** текущий document root placeholder:
+
+```nginx
+# внутри server { ... } для harkonlord.su — ДОБАВИТЬ, не меняя location /
+location /feed/ {
+  alias /var/www/feed-time/;
+  try_files $uri $uri/ /feed/index.html;
+}
+```
+
+Открывать: `https://harkonlord.su/feed/` (или http). Placeholder на `/` остаётся.
+
+### 13.4. Проверка
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" http://app.harkonlord.su/
+curl -sS http://api.harkonlord.su/api/health
+# в браузере: открыть сайт → Настройки → поле API должно быть http://api.harkonlord.su
+```
