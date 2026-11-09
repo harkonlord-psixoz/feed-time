@@ -3,6 +3,13 @@
 const express = require("express");
 const { query, withClient } = require("../db");
 const { generateInviteCode } = require("../invite");
+const hub = require("../hub");
+const {
+  normalizePetsPayload,
+  parseUpdatedAt,
+  mapProfile,
+  shouldApplyClient,
+} = require("../profile");
 const {
   asyncHandler,
   requireAuth,
@@ -13,6 +20,14 @@ const {
 const router = express.Router();
 
 router.use(requireAuth);
+
+async function loadHouseholdProfile(householdId) {
+  const res = await query(
+    `SELECT pets_json, pets_updated_at FROM households WHERE id = $1`,
+    [householdId]
+  );
+  return mapProfile(res.rows[0]);
+}
 
 async function uniqueInviteCode(client) {
   for (let i = 0; i < 12; i++) {
@@ -44,6 +59,7 @@ router.get(
        ORDER BY hm.joined_at ASC`,
       [membership.household_id]
     );
+    const profile = await loadHouseholdProfile(membership.household_id);
     res.json({
       household: {
         id: membership.household_id,
@@ -51,6 +67,7 @@ router.get(
         role: membership.role,
         inviteCode: membership.invite_code,
         ownerId: membership.owner_id,
+        profile,
         members: members.rows.map((m) => ({
           id: m.id,
           email: m.email,
@@ -74,15 +91,27 @@ router.post(
         .json({ error: "Вы уже состоите в семье — сначала выйдите" });
     }
 
+    const initialPets = normalizePetsPayload(
+      (req.body && (req.body.pets || req.body.profile)) || null
+    );
+    const initialUpdatedAt =
+      parseUpdatedAt(req.body && req.body.updatedAt) || new Date();
+
     const household = await withClient(async (client) => {
       await client.query("BEGIN");
       try {
         const code = await uniqueInviteCode(client);
         const h = await client.query(
-          `INSERT INTO households (name, invite_code, owner_id)
-           VALUES ($1, $2, $3)
-           RETURNING id, name, invite_code, owner_id, created_at`,
-          [name, code, req.user.id]
+          `INSERT INTO households (name, invite_code, owner_id, pets_json, pets_updated_at)
+           VALUES ($1, $2, $3, $4::jsonb, $5)
+           RETURNING id, name, invite_code, owner_id, created_at, pets_json, pets_updated_at`,
+          [
+            name,
+            code,
+            req.user.id,
+            JSON.stringify(initialPets),
+            initialUpdatedAt.toISOString(),
+          ]
         );
         await client.query(
           `INSERT INTO household_members (household_id, user_id, role)
@@ -104,6 +133,7 @@ router.post(
         role: "owner",
         inviteCode: household.invite_code,
         ownerId: household.owner_id,
+        profile: mapProfile(household),
       },
     });
   })
@@ -139,6 +169,43 @@ router.post(
        ON CONFLICT DO NOTHING`,
       [h.id, req.user.id]
     );
+
+    /* Optional migrate: LWW-merge local pets from joiner into household */
+    const clientPets = req.body && (req.body.pets || req.body.profile);
+    const clientUpdatedAt = parseUpdatedAt(req.body && req.body.updatedAt);
+    if (clientPets && clientUpdatedAt) {
+      const merged = await withClient(async (client) => {
+        await client.query("BEGIN");
+        try {
+          const current = await client.query(
+            `SELECT pets_json, pets_updated_at FROM households WHERE id = $1 FOR UPDATE`,
+            [h.id]
+          );
+          if (
+            current.rowCount > 0 &&
+            shouldApplyClient(current.rows[0].pets_updated_at, clientUpdatedAt)
+          ) {
+            const pets = normalizePetsPayload(clientPets);
+            await client.query(
+              `UPDATE households SET pets_json = $1::jsonb, pets_updated_at = $2 WHERE id = $3`,
+              [JSON.stringify(pets), clientUpdatedAt.toISOString(), h.id]
+            );
+            await client.query("COMMIT");
+            return { pets, updatedAt: clientUpdatedAt.toISOString() };
+          }
+          await client.query("COMMIT");
+          return null;
+        } catch (err) {
+          await client.query("ROLLBACK");
+          throw err;
+        }
+      });
+      if (merged) {
+        hub.broadcast(h.id, { type: "profile", profile: merged });
+      }
+    }
+
+    const profile = await loadHouseholdProfile(h.id);
     res.json({
       household: {
         id: h.id,
@@ -146,6 +213,7 @@ router.post(
         role: "member",
         inviteCode: h.invite_code,
         ownerId: h.owner_id,
+        profile,
       },
     });
   })
@@ -195,6 +263,82 @@ router.post(
       req.membership.household_id,
     ]);
     res.json({ inviteCode: code });
+  })
+);
+
+router.get(
+  "/profile",
+  requireHousehold,
+  asyncHandler(async (req, res) => {
+    const profile = await loadHouseholdProfile(req.membership.household_id);
+    res.json({ profile });
+  })
+);
+
+/**
+ * PUT body: { pets: {version, pets:[{species,name}]}, updatedAt: ISO }
+ * Last-write-wins by updatedAt. Stale writes return current profile with applied:false.
+ */
+router.put(
+  "/profile",
+  requireHousehold,
+  asyncHandler(async (req, res) => {
+    const householdId = req.membership.household_id;
+    const pets = normalizePetsPayload(
+      (req.body && (req.body.pets || req.body.profile)) || null
+    );
+    const clientUpdatedAt = parseUpdatedAt(req.body && req.body.updatedAt);
+    if (!clientUpdatedAt) {
+      return res.status(400).json({ error: "updatedAt обязателен (ISO)" });
+    }
+
+    const outcome = await withClient(async (client) => {
+      await client.query("BEGIN");
+      try {
+        const current = await client.query(
+          `SELECT pets_json, pets_updated_at FROM households WHERE id = $1 FOR UPDATE`,
+          [householdId]
+        );
+        if (current.rowCount === 0) {
+          const err = new Error("Семья не найдена");
+          err.status = 404;
+          throw err;
+        }
+        const row = current.rows[0];
+        if (!shouldApplyClient(row.pets_updated_at, clientUpdatedAt)) {
+          await client.query("COMMIT");
+          return {
+            applied: false,
+            reason: "stale",
+            profile: mapProfile(row),
+          };
+        }
+        const updated = await client.query(
+          `UPDATE households
+           SET pets_json = $1::jsonb, pets_updated_at = $2
+           WHERE id = $3
+           RETURNING pets_json, pets_updated_at`,
+          [JSON.stringify(pets), clientUpdatedAt.toISOString(), householdId]
+        );
+        await client.query("COMMIT");
+        return {
+          applied: true,
+          profile: mapProfile(updated.rows[0]),
+        };
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      }
+    });
+
+    if (outcome.applied) {
+      hub.broadcast(householdId, {
+        type: "profile",
+        profile: outcome.profile,
+      });
+    }
+
+    res.json(outcome);
   })
 );
 

@@ -15,6 +15,7 @@ const hub = require("./hub");
 const authRoutes = require("./routes/auth");
 const householdRoutes = require("./routes/household");
 const feedingsRoutes = require("./routes/feedings");
+const devicesRoutes = require("./routes/devices");
 
 const PORT = Number(process.env.PORT || 3080);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -57,6 +58,7 @@ async function main() {
   app.use("/api/auth", authRoutes);
   app.use("/api/households", householdRoutes);
   app.use("/api/feedings", feedingsRoutes);
+  app.use("/api/devices", devicesRoutes);
 
   app.use(errorHandler);
 

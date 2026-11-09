@@ -32,6 +32,12 @@ public class MurJsBridge {
         FeedNotifier.justFed(appContext, body);
     }
 
+    /** Another household member fed — body from server/WS (or JS). */
+    @JavascriptInterface
+    public void notifyFamilyFed(String body) {
+        FeedNotifier.familyFed(appContext, body);
+    }
+
     /**
      * Persist last-feed timestamp + pre-declined notification bodies; reschedule alarms.
      * @param lastFeedMs epoch millis as string (0 = unknown / use now as base)

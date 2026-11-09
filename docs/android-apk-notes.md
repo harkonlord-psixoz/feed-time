@@ -1,4 +1,4 @@
-# Feed Time — Android APK (v1.8.0)
+# Feed Time — Android APK (v1.9.0)
 
 ## Что собрано
 
@@ -8,17 +8,17 @@
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
-- **Версия:** `1.8.0` (versionCode **15**)
-- **Содержимое:** WebView + виджет + **локальные уведомления** (AlarmManager) + **семейный синк на свой VPS**
+- **Версия:** `1.9.0` (versionCode **16**)
+- **Содержимое:** WebView + виджет + локальные уведомления + **синк профиля питомцев** + **семейные оповещения** (WS → `notifyFamilyFed`)
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
-- **Последняя пересборка:** CF-31/32 — веб-хостинг + дефолт API `http://api.harkonlord.su`, Release v1.8.0, keystore `mur-calendar-debug.keystore`.
+- **Последняя пересборка:** CF-33/34 — household profile LWW + family_feed, Release v1.9.0, keystore `mur-calendar-debug.keystore`.
 
-## Семейный синк на VPS (CF-28–30 → CF-31)
+## Семейный синк на VPS (CF-28–34)
 
 1. В **Настройки → Сервер и семья**: URL API (по умолчанию `http://api.harkonlord.su`), регистрация/вход, создать/вступить в семью по коду.
-2. Браузерный клиент: раздайте `web/` через nginx (поддомен `app.`), API отдельно — см. `docs/vps-api-deploy.md` §12–13.
-3. Бэкенд: `server/` (Express + Postgres + JWT + WebSocket).
-4. Календарь: LWW по `updatedAt`, `clientId` идемпотентность, очередь в `mur-calendar-sync-queue`; тема и прочие `mur-calendar-*` остаются локальными.
+2. **Профиль питомцев** (число / вид / клички) синкается в семью (LWW); при create/join мигрирует из `mur-calendar-profile`.
+3. **Кормление на одном устройстве** → WS `family_feed` → локальный пуш на других (пока APK/вкладка живы). Фон: опциональный FCM (`FCM_SERVER_KEY` + `fcmToken` в `/api/devices/register`) — см. `family-sync-and-notifications.md`.
+4. Бэкенд: `server/` + миграция `002_household_profile_devices.sql`.
 5. Android: `usesCleartextTraffic` + network security — HTTP к VPS (443 часто занят Xray).
 
 ## Прозрачный status bar (CF-27)
