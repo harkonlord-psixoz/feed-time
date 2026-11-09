@@ -315,20 +315,22 @@ npm run dev
 
 | Что | URL (пример на VPS HarkonLord) | Кто открывает |
 |-----|--------------------------------|---------------|
-| **Веб-UI** (статический `web/`) | `https://app.harkonlord.su` (или путь на сайте) | люди **без APK** в браузере |
-| **API** (Node на :3080 за nginx) | `http://api.harkonlord.su` | приложение / веб-UI в настройках синка |
+| **Веб-UI** (статический `web/`) | `https://app.harkonlord.su` | люди **без APK** в браузере |
+| **API** (Node на :3080 за nginx) | `https://api.harkonlord.su` | приложение / веб-UI в настройках синка |
 
 Сайт и API — **разные** origin’ы. В UI поле «URL сервера» — это **только API**, не адрес страницы календаря.
 
-На текущем VPS:
+Целевое состояние после §14 (HTTPS):
 
-- **443** занят **Xray** → API отдаём по **HTTP** (`http://api.harkonlord.su` → nginx → `127.0.0.1:3080`), не через HTTPS на том же порту.
-- Клиент Feed Time (веб и Android WebView) умеет cleartext HTTP к своему VPS.
-- Дефолт в `web/index.html`: meta `feed-time-default-api` = `http://api.harkonlord.su` (если в `localStorage` ещё нет своего URL).
+- Дефолт в `web/index.html`: meta `feed-time-default-api` = `https://api.harkonlord.su` (если в `localStorage` ещё нет своего URL).
+- Уже сохранённый в браузере/APK `http://…` **не** перезаписывается автоматически — в Настройках смените на `https://api.harkonlord.su` или очистите ключ URL API.
+- Cleartext HTTP в Android по-прежнему разрешён (LAN / IP:3080), но прод — HTTPS.
+
+Пока HTTPS ещё не включён на VPS (шаги §14 не сделаны), временно оставляйте HTTP на `:80`; после сертификатов и `listen 443` — только HTTPS.
 
 В приложении / на сайте → **Настройки → Сервер и семья**:
 
-1. URL API (`http://api.harkonlord.su` по умолчанию; или свой `http://IP:3080` / HTTPS-домен)
+1. URL API (`https://api.harkonlord.su` по умолчанию; или свой `http://IP:3080` / другой HTTPS-домен)
 2. Регистрация / вход
 3. Создать семью или ввести invite-код
 4. Календарь синкается (офлайн-очередь + `localStorage`); тема и прочие `mur-calendar-*` ключи остаются локальными
@@ -357,7 +359,7 @@ DNS: A-запись `app` → IP VPS (как у apex / api).
 
 ### 13.2. nginx — поддомен приложения (предпочтительно)
 
-Новый сайт, **не** меняя root у `harkonlord.su`:
+Новый сайт, **не** меняя root у `harkonlord.su`. Ниже — только HTTP (`:80`); TLS добавляется в §14 **поверх** существующих блоков, без переписывания ваших `location` / `proxy_pass`.
 
 ```nginx
 # /etc/nginx/sites-available/feed-time-web
@@ -386,7 +388,26 @@ sudo ln -sf /etc/nginx/sites-available/feed-time-web /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Если для apex уже есть HTTPS/сертификат и **443 свободен для nginx** — можно добавить `listen 443 ssl` с тем же `root`. Пока 443 держит Xray, пользователям достаточно **HTTP** на `app.` или TLS на другом порту/CDN — как решите на VPS.
+API на `api.harkonlord.su` уже должен слушать **только :80** и проксировать на `127.0.0.1:3080` (ваш существующий snippet **не удаляйте**). Типичный каркас (если вдруг нет — создайте отдельно, не трогая apex):
+
+```nginx
+# /etc/nginx/sites-available/feed-time-api  — пример; у вас может называться иначе
+server {
+  listen 80;
+  listen [::]:80;
+  server_name api.harkonlord.su;
+
+  location / {
+    proxy_pass http://127.0.0.1:3080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
 
 `CORS_ORIGIN` у API: `*` (как в `.env.example`) или явный список с origin веб-UI, например:
 
@@ -408,10 +429,310 @@ location /feed/ {
 
 Открывать: `https://harkonlord.su/feed/` (или http). Placeholder на `/` остаётся.
 
-### 13.4. Проверка
+### 13.4. Проверка (до TLS)
 
 ```bash
 curl -sS -o /dev/null -w "%{http_code}\n" http://app.harkonlord.su/
 curl -sS http://api.harkonlord.su/api/health
-# в браузере: открыть сайт → Настройки → поле API должно быть http://api.harkonlord.su
 ```
+
+После §14 проверяйте уже `https://…` (см. §14.6).
+
+---
+
+## 14. HTTPS для `app.` и `api.` (certbot + nginx, порт 443)
+
+**Цель:** `https://app.harkonlord.su` и `https://api.harkonlord.su` с Let’s Encrypt.
+
+**Проблема:** на VPS порт **443** часто занят **Xray**, а nginx уже отдаёт оба хоста по **HTTP :80**. Certbot HTTP-01 работает через **:80** — сертификаты можно получить **не трогая 443**. Чтобы браузер ходил на стандартный HTTPS, nginx должен слушать **443** (вариант A) либо TLS терминирует Xray по SNI (вариант B).
+
+**Рекомендация: вариант A** — кратко освободить 443 у Xray (остановить или перенести inbound на другой порт) и включить `listen 443 ssl` в nginx. Существующие server-блоки на `:80` и ваши `proxy_pass` / `root` **не ломаем**: только добавляем SSL и при желании редирект HTTP→HTTPS.
+
+### 14.0. Перед началом — диагностика
+
+```bash
+# кто слушает 80 и 443
+sudo ss -tlnp | grep -E ':80|:443'
+
+# какие server_name уже есть у nginx (не удаляйте чужие сайты)
+sudo nginx -T 2>/dev/null | grep -E 'server_name|listen '
+
+# DNS должен указывать на этот VPS
+dig +short app.harkonlord.su A
+dig +short api.harkonlord.su A
+curl -sS -o /dev/null -w "app HTTP %{http_code}\n" http://app.harkonlord.su/
+curl -sS -o /dev/null -w "api HTTP %{http_code}\n" http://api.harkonlord.su/api/health
+```
+
+Ожидание: оба HTTP отвечают **200** (или health JSON у API). Если нет — сначала почините §13 / API-прокси, TLS не поможет.
+
+### 14.1. Установка certbot
+
+```bash
+sudo apt update
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+### 14.2. Выпуск сертификатов по HTTP-01 (порт 80, без 443)
+
+Важно: используйте **`certonly`** — только получить файлы сертификата, **без** авто-правки nginx на `listen 443` (пока 443 занят Xray, `certbot --nginx` без `certonly` упадёт или сломает конфиг).
+
+```bash
+# Один сертификат на оба имени (удобно для одного ssl_certificate)
+sudo certbot certonly --nginx \
+  -d app.harkonlord.su \
+  -d api.harkonlord.su \
+  --agree-tos \
+  --email ВАШ@EMAIL \
+  --non-interactive
+```
+
+Если плагин nginx ругается — webroot (для `app` корень уже есть; для `api` добавьте **временный** ACME location, не трогая `proxy_pass` остального трафика):
+
+```bash
+# В server { ... } api.harkonlord.su на :80 — ДОБАВИТЬ выше proxy location:
+#   location ^~ /.well-known/acme-challenge/ {
+#     root /var/www/acme;
+#     default_type "text/plain";
+#   }
+sudo mkdir -p /var/www/acme
+sudo nginx -t && sudo systemctl reload nginx
+
+sudo certbot certonly --webroot \
+  -w /var/www/feed-time \
+  -d app.harkonlord.su \
+  --agree-tos --email ВАШ@EMAIL --non-interactive
+
+sudo certbot certonly --webroot \
+  -w /var/www/acme \
+  -d api.harkonlord.su \
+  --agree-tos --email ВАШ@EMAIL --non-interactive
+```
+
+Проверка файлов (пути появятся в выводе certbot; обычно так):
+
+```bash
+sudo ls -la /etc/letsencrypt/live/app.harkonlord.su/
+# fullchain.pem  privkey.pem  ...
+# если api выпускали отдельно — /etc/letsencrypt/live/api.harkonlord.su/
+```
+
+Продление: `certbot.timer` обычно уже активен. Проверка dry-run:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+### 14.3. Вариант A (предпочтительно) — освободить 443 и отдать nginx
+
+#### Шаг A1. Найти процесс на 443
+
+```bash
+sudo ss -tlnp | grep ':443'
+# часто: xray / v2ray / sing-box
+systemctl list-units --type=service --all | grep -iE 'xray|v2ray|sing'
+```
+
+#### Шаг A2a. Кратко остановить Xray (если VPN/прокси можно прервать на пару минут)
+
+```bash
+# подставьте реальное имя юнита из list-units, часто xray.service
+sudo systemctl stop xray
+sudo ss -tlnp | grep ':443' || echo "443 свободен"
+```
+
+#### Шаг A2b. Или перенести Xray на другой порт (безопаснее надолго)
+
+1. Откройте конфиг Xray (часто `/usr/local/etc/xray/config.json` или `/etc/xray/config.json`):
+
+```bash
+sudo find /etc /usr/local/etc -name 'config.json' 2>/dev/null | head
+```
+
+2. В inbound, где `"port": 443` (или listen 443), смените на свободный порт, например **8443** или **2053**.
+3. Откройте порт в ufw при необходимости: `sudo ufw allow 8443/tcp`
+4. Обновите клиенты VPN на новый порт.
+5. Перезапуск:
+
+```bash
+sudo systemctl restart xray
+sudo ss -tlnp | grep -E ':443|:8443'
+```
+
+После этого **443 свободен для nginx**, Xray продолжает работать на новом порту.
+
+#### Шаг A3. Включить SSL в nginx — **добавить**, не переписывая ваши location
+
+**Не удаляйте** существующие `server { listen 80; … }`. Добавьте рядом блок на 443 с **тем же** `root` / `proxy_pass`, что уже работает на 80.
+
+Пример для веб-UI (пути к сертификату — из `certbot certificates`):
+
+```nginx
+# ДОБАВИТЬ в /etc/nginx/sites-available/feed-time-web (или include)
+server {
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+  server_name app.harkonlord.su;
+
+  ssl_certificate     /etc/letsencrypt/live/app.harkonlord.su/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/app.harkonlord.su/privkey.pem;
+  include /etc/letsencrypt/options-ssl-nginx.conf;
+  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+  root /var/www/feed-time;
+  index index.html;
+
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+  location = /index.html {
+    add_header Cache-Control "no-cache";
+  }
+}
+```
+
+Пример для API (те же `proxy_*`, что у вас на :80):
+
+```nginx
+# ДОБАВИТЬ рядом с существующим server api на :80
+server {
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+  server_name api.harkonlord.su;
+
+  # если один сертификат на оба имени — тот же live/.../app.harkonlord.su/
+  # если отдельный для api — live/api.harkonlord.su/
+  ssl_certificate     /etc/letsencrypt/live/app.harkonlord.su/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/app.harkonlord.su/privkey.pem;
+  include /etc/letsencrypt/options-ssl-nginx.conf;
+  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+  location / {
+    proxy_pass http://127.0.0.1:3080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+Если файлов `options-ssl-nginx.conf` / `ssl-dhparams.pem` нет:
+
+```bash
+sudo certbot install --cert-name app.harkonlord.su
+# либо один раз: sudo openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048
+# и скачайте стандартный options-ssl-nginx.conf от Certbot / уберите две строки include/ssl_dhparam
+```
+
+Опционально — редирект HTTP→HTTPS **внутри уже существующих** `:80` блоков (добавить одной директивой в начало `server`, не трогая ACME, если ещё нужен webroot):
+
+```nginx
+# в server listen 80 для app / api — после выпуска сертификатов:
+# return 301 https://$host$request_uri;
+```
+
+Либо оставьте `:80` рабочим параллельно (удобно для отладки).
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+#### Шаг A4. Вернуть Xray (если останавливали в A2a и хотите снова на 443)
+
+Если nginx уже занял 443, **нельзя** снова повесить Xray на тот же порт без варианта B. Либо Xray остаётся на другом порту (A2b), либо переходите к B (SNI).
+
+```bash
+# только если 443 снова свободен И вы сознательно убираете nginx с 443
+# sudo systemctl start xray
+```
+
+### 14.4. Вариант B — Xray остаётся на 443, HTTPS для сайтов через SNI/fallback
+
+Используйте, если клиенты VPN **обязаны** ходить на `IP:443` и перенос порта неприемлем. Идея: Xray принимает TLS на 443 и по **SNI** (имя хоста в ClientHello) либо обслуживает свой протокол, либо **пробрасывает** трафик `app.` / `api.` на nginx с TLS на localhost.
+
+Типичная схема:
+
+1. nginx слушает **только localhost**, например `127.0.0.1:8443` с `ssl` для `app` и `api` (те же `ssl_certificate` / `root` / `proxy_pass`, что в A3, но `listen 127.0.0.1:8443 ssl`).
+2. В inbound Xray на 443 включают **fallback / dokodemo-door / nginx SNI route** на `127.0.0.1:8443` для SNI `app.harkonlord.su` и `api.harkonlord.su`.
+3. Остальной SNI (или Reality dest) — как было у вашего Xray.
+
+**Точные ключи JSON зависят от вашей сборки Xray (VLESS+REALITY, VMess+WS+TLS и т.д.) — универсального «вставь и забудь» нет.** Ориентир для REALITY/fallback (псевдо-фрагмент, сверьте с [документацией Xray](https://xtls.github.io/) и своим конфигом):
+
+```json
+{
+  "inbounds": [{
+    "port": 443,
+    "protocol": "vless",
+    "settings": {
+      "clients": [],
+      "fallbacks": [
+        { "name": "app.harkonlord.su", "dest": "127.0.0.1:8443" },
+        { "name": "api.harkonlord.su", "dest": "127.0.0.1:8443" },
+        { "dest": "80" }
+      ]
+    },
+    "streamSettings": { "network": "tcp", "security": "reality" }
+  }]
+}
+```
+
+Перед правкой:
+
+```bash
+sudo cp -a /path/to/xray/config.json /path/to/xray/config.json.bak-$(date +%Y%m%d)
+sudo nginx -t
+# после правок Xray + nginx:
+sudo systemctl restart xray
+sudo systemctl reload nginx
+```
+
+Минусы B: сложнее отладка, ошибка в fallback ломает и VPN, и сайты; обновления Xray могут сменить синтаксис. **Предпочитайте A**, если можете сменить порт VPN-клиента.
+
+### 14.5. CORS и клиент после HTTPS
+
+В `/opt/feed-time/server/.env` убедитесь, что origin веб-UI с https разрешён (`CORS_ORIGIN=*` уже ок):
+
+```bash
+# пример явного списка:
+# CORS_ORIGIN=https://app.harkonlord.su,http://app.harkonlord.su
+cd /opt/feed-time/server && docker compose up -d
+```
+
+Обновите статику с дефолтом HTTPS:
+
+```bash
+cd /opt/feed-time && git pull origin main
+sudo rsync -a --delete /opt/feed-time/web/ /var/www/feed-time/
+```
+
+В приложении / браузере: **Настройки → URL API** = `https://api.harkonlord.su` (без `/` в конце). WebSocket сам станет `wss://` из `https://`.
+
+### 14.6. Проверка HTTPS
+
+```bash
+curl -sSI https://app.harkonlord.su/ | head -n 15
+curl -sS https://api.harkonlord.su/api/health
+# {"ok":true,"service":"feed-time-api",...}
+
+# цепочка сертификата
+echo | openssl s_client -connect app.harkonlord.su:443 -servername app.harkonlord.su 2>/dev/null | openssl x509 -noout -subject -dates
+echo | openssl s_client -connect api.harkonlord.su:443 -servername api.harkonlord.su 2>/dev/null | openssl x509 -noout -subject -dates
+```
+
+В браузере: открыть `https://app.harkonlord.su` → замок → Настройки → API `https://api.harkonlord.su` → логин / health через сеть.
+
+### 14.7. Откат
+
+```bash
+# убрать только добавленные server { listen 443 ... } (вернуть бэкап сайта)
+sudo cp -a /etc/nginx/sites-available/feed-time-web.bak /etc/nginx/sites-available/feed-time-web
+sudo nginx -t && sudo systemctl reload nginx
+
+# вернуть Xray на 443 (если переносили порт — верните port в config.json)
+sudo systemctl start xray
+```
+
+HTTP на `:80` при этом продолжает работать, если вы его не вырезали.

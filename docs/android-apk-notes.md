@@ -15,11 +15,11 @@
 
 ## Семейный синк на VPS (CF-28–34)
 
-1. В **Настройки → Сервер и семья**: URL API (по умолчанию `http://api.harkonlord.su`), регистрация/вход, создать/вступить в семью по коду.
+1. В **Настройки → Сервер и семья**: URL API (по умолчанию `https://api.harkonlord.su`), регистрация/вход, создать/вступить в семью по коду.
 2. **Профиль питомцев** (число / вид / клички) синкается в семью (LWW); при create/join мигрирует из `mur-calendar-profile`.
 3. **Кормление на одном устройстве** → WS `family_feed` → локальный пуш на других (пока APK/вкладка живы). Фон: опциональный FCM (`FCM_SERVER_KEY` + `fcmToken` в `/api/devices/register`) — см. `family-sync-and-notifications.md`.
 4. Бэкенд: `server/` + миграция `002_household_profile_devices.sql`.
-5. Android: `usesCleartextTraffic` + network security — HTTP к VPS (443 часто занят Xray).
+5. Android: `usesCleartextTraffic` + network security — HTTP к VPS по IP/LAN по-прежнему ок; прод — HTTPS (`docs/vps-api-deploy.md` §14).
 
 ## Прозрачный status bar (CF-27)
 
