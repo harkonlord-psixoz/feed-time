@@ -11,7 +11,7 @@
   })();
   </script>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
   <title>Feed Time · Кормление</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,6 +19,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fredoka:wght@400;500;600&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     /* ——— Theme tokens (swap via data-theme + data-mode on <html>) ——— */
+    :root {
+      /* Native MainActivity injects real px via WindowInsets; env() is a CSS fallback. */
+      --android-inset-top: env(safe-area-inset-top, 0px);
+      --android-inset-bottom: env(safe-area-inset-bottom, 0px);
+    }
     :root,
     [data-theme="cream-rose"] {
       /* Светлый беж + мягкий градиент; тёмный текст для читаемости */
@@ -555,6 +560,8 @@
       display: flex;
       flex-direction: column;
       padding: 1.15rem 0.9rem 1.4rem;
+      padding-top: calc(1.15rem + var(--android-inset-top, 0px));
+      padding-bottom: calc(1.4rem + var(--android-inset-bottom, 0px));
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -1845,10 +1852,12 @@
       }
     }
 
-    /* Android WebView: mobile-friendly 2-col, today spans row, hole-fill kept. */
+    /* Android WebView: mobile-friendly 2-col, today spans row, hole-fill kept.
+       Edge-to-edge: pad under transparent status / nav bars (CF-27). */
     html[data-shell="android"] .page {
       width: min(100% - 1rem, 1120px);
-      padding-top: 1rem;
+      padding-top: calc(1rem + var(--android-inset-top, 0px));
+      padding-bottom: calc(4rem + var(--android-inset-bottom, 0px));
     }
     html[data-shell="android"] .days {
       grid-template-columns: repeat(2, 1fr);
@@ -2209,7 +2218,7 @@
       const PROFILE_KEY = "mur-calendar-profile";
       const LAST_FEED_AT_KEY = "mur-calendar-last-feed-at";
       const GITHUB_PAT_KEY = "mur-calendar-github-pat";
-      const APP_VERSION = "1.7.4";
+      const APP_VERSION = "1.7.5";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
@@ -2853,6 +2862,12 @@
         modeToggle.setAttribute("aria-pressed", dark ? "true" : "false");
         modeToggle.title = dark ? "Переключить на светлый" : "Переключить на тёмный";
         if (navModeHint) navModeHint.textContent = dark ? "Тёмный режим" : "Светлый режим";
+        /* Transparent status bar: dark mode → light icons; light mode → dark icons. */
+        try {
+          if (window.MurCalendarAndroid && typeof MurCalendarAndroid.setSystemUiMode === "function") {
+            MurCalendarAndroid.setSystemUiMode(mode);
+          }
+        } catch (e) {}
       }
 
       var savedMode = null;
