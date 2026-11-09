@@ -1,4 +1,4 @@
-# feed-time / Мур-календарь
+# feed-time / Feed Time
 
 Календарь кормления кошек (и других питомцев) + Android-обёртка WebView с виджетом.
 
@@ -78,7 +78,7 @@ Release sideload: `./gradlew assembleRelease` подписан тем же `andr
 
 После публикации «Проверить обновления» покажет tag, ссылку на релиз и прямую ссылку на APK.
 
-Текущая версия приложения в коде: **1.7.3** (`web/index.html` → `APP_VERSION`, Android `versionName`).
+Текущая версия приложения в коде: **1.7.4** (`web/index.html` → `APP_VERSION`, Android `versionName`).
 
 ---
 

@@ -18,21 +18,21 @@ public class FeedAlarmReceiver extends BroadcastReceiver {
             FeedNotifier.show(
                     context,
                     FeedNotifier.ID_REMINDER,
-                    "Мур-календарь",
+                    "Feed Time",
                     FeedReminderScheduler.reminderBody(context)
             );
         } else if (FeedReminderScheduler.ACTION_HUNGRY.equals(action)) {
             FeedNotifier.show(
                     context,
                     FeedNotifier.ID_HUNGRY,
-                    "Мур-календарь",
+                    "Feed Time",
                     FeedReminderScheduler.hungryBody(context)
             );
         } else if (FeedReminderScheduler.ACTION_MORNING.equals(action)) {
             FeedNotifier.show(
                     context,
                     FeedNotifier.ID_MORNING,
-                    "Мур-календарь",
+                    "Feed Time",
                     FeedReminderScheduler.morningBody(context)
             );
             FeedReminderScheduler.rescheduleAll(context);

@@ -13,7 +13,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
-  <title>Мур-календарь · Кормление</title>
+  <title>Feed Time · Кормление</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fredoka:wght@400;500;600&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -2007,7 +2007,7 @@
             <circle cx="25.2" cy="30.8" r="1.6" fill="var(--paw-soft)" opacity="0.55"/>
             <circle cx="38.8" cy="30.8" r="1.6" fill="var(--paw-soft)" opacity="0.55"/>
           </svg>
-          <h1 class="brand">Мур-календарь <span class="year-pill" id="year-pill">—</span></h1>
+          <h1 class="brand">Feed Time <span class="year-pill" id="year-pill">—</span></h1>
         </div>
         <div class="hero-tools">
           <time class="live-clock" id="live-clock" datetime="">--:--</time>
@@ -2061,7 +2061,7 @@
         <div class="profile-head">
           <div class="profile-avatar" aria-hidden="true"></div>
           <div>
-            <p class="profile-name" id="profile-summary-name">Хозяин Мур-календаря</p>
+            <p class="profile-name" id="profile-summary-name">Хозяин Feed Time</p>
             <p class="profile-meta" id="profile-summary-meta">Питомцы ещё не настроены</p>
           </div>
         </div>
@@ -2134,7 +2134,7 @@
     </div>
 
     <footer class="note">
-      <strong>Мур-календарь</strong> · распечатай или заполни в браузере · сделано с лапкой
+      <strong>Feed Time</strong> · распечатай или заполни в браузере · сделано с лапкой
     </footer>
   </div>
 
@@ -2209,7 +2209,7 @@
       const PROFILE_KEY = "mur-calendar-profile";
       const LAST_FEED_AT_KEY = "mur-calendar-last-feed-at";
       const GITHUB_PAT_KEY = "mur-calendar-github-pat";
-      const APP_VERSION = "1.7.3";
+      const APP_VERSION = "1.7.4";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
@@ -3909,7 +3909,7 @@
             return;
           }
         } catch (e) {}
-        webNotify("Мур-календарь", body, "mur-just-fed");
+        webNotify("Feed Time", body, "mur-just-fed");
         showToast(body);
       }
 
@@ -3939,7 +3939,7 @@
           function scheduleWeb(delayMs, title, tag) {
             if (delayMs < 0) delayMs = 0;
             var id = setTimeout(function () {
-              webNotify("Мур-календарь", title, tag);
+              webNotify("Feed Time", title, tag);
             }, delayMs);
             window.__murFeedTimers.push(id);
           }
