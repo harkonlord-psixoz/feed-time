@@ -13,11 +13,15 @@ import java.util.Calendar;
  * Schedules local feed reminders with AlarmManager.
  * Quiet hours 23:00–06:00: fire times are pushed to 06:15.
  * Reminder ≈ 3.5h after last feed; hungry at 5h; morning 06:15 daily.
- * Interval settings (3–4h) — future product setting; see docs.
+ * Copy bodies are stored pre-declined from JS (no native case logic).
  */
 public final class FeedReminderScheduler {
     public static final String PREFS = "mur_calendar_notify";
     public static final String KEY_LAST_MS = "last_feed_ms";
+    public static final String KEY_BODY_REMINDER = "body_reminder";
+    public static final String KEY_BODY_HUNGRY = "body_hungry";
+    public static final String KEY_BODY_MORNING = "body_morning";
+    /** Legacy key from v1.7.0 — ignored for assembly, kept for migration. */
     public static final String KEY_NAMES = "pet_names";
     public static final String KEY_COUNT = "pet_count";
 
@@ -38,25 +42,36 @@ public final class FeedReminderScheduler {
         return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    public static void saveState(Context context, long lastFeedMs, String names, String count) {
+    public static void saveState(
+            Context context,
+            long lastFeedMs,
+            String reminderBody,
+            String hungryBody,
+            String morningBody
+    ) {
         prefs(context).edit()
                 .putLong(KEY_LAST_MS, lastFeedMs)
-                .putString(KEY_NAMES, names == null ? "" : names)
-                .putString(KEY_COUNT, count == null ? "1" : count)
+                .putString(KEY_BODY_REMINDER, reminderBody == null ? "" : reminderBody)
+                .putString(KEY_BODY_HUNGRY, hungryBody == null ? "" : hungryBody)
+                .putString(KEY_BODY_MORNING, morningBody == null ? "" : morningBody)
                 .apply();
     }
 
-    public static String names(Context context) {
-        String n = prefs(context).getString(KEY_NAMES, "");
-        return (n == null || n.trim().isEmpty()) ? "питомцев" : n.trim();
+    public static String bodyOrFallback(Context context, String key, String fallback) {
+        String n = prefs(context).getString(key, "");
+        return (n == null || n.trim().isEmpty()) ? fallback : n.trim();
     }
 
-    public static int petCount(Context context) {
-        try {
-            return Math.max(1, Integer.parseInt(prefs(context).getString(KEY_COUNT, "1")));
-        } catch (Exception e) {
-            return 1;
-        }
+    public static String reminderBody(Context context) {
+        return bodyOrFallback(context, KEY_BODY_REMINDER, "Пора покормить питомца!");
+    }
+
+    public static String hungryBody(Context context) {
+        return bodyOrFallback(context, KEY_BODY_HUNGRY, "Питомец совсем проголодался!");
+    }
+
+    public static String morningBody(Context context) {
+        return bodyOrFallback(context, KEY_BODY_MORNING, "Доброе утро! Не забудьте покормить питомца.");
     }
 
     public static void rescheduleAll(Context context) {
@@ -91,7 +106,6 @@ public final class FeedReminderScheduler {
         if (c.getTimeInMillis() <= System.currentTimeMillis()) {
             c.add(Calendar.DAY_OF_YEAR, 1);
         }
-        /* If original was after 23:00 today, morning is tomorrow — already handled if past. */
         if (h >= 23) {
             Calendar morn = Calendar.getInstance();
             morn.setTimeInMillis(atMs);
@@ -130,7 +144,6 @@ public final class FeedReminderScheduler {
                 am.set(AlarmManager.RTC_WAKEUP, when, pi);
             }
         } catch (SecurityException se) {
-            /* Exact alarms may be restricted; fall back to inexact. */
             am.set(AlarmManager.RTC_WAKEUP, when, pi);
         }
     }

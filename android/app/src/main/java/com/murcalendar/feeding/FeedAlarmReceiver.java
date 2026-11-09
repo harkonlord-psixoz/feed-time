@@ -6,39 +6,35 @@ import android.content.Intent;
 
 /**
  * Fires scheduled feed reminder / hungry / morning notifications.
- * Re-arms morning alarm after each morning fire.
+ * Bodies are pre-declined phrases stored from JS.
  */
 public class FeedAlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null || intent.getAction() == null) return;
         String action = intent.getAction();
-        String names = FeedReminderScheduler.names(context);
-        int count = FeedReminderScheduler.petCount(context);
-        String hungryVerb = count > 1 ? "проголодались" : "проголодался";
 
         if (FeedReminderScheduler.ACTION_REMINDER.equals(action)) {
             FeedNotifier.show(
                     context,
                     FeedNotifier.ID_REMINDER,
                     "Мур-календарь",
-                    "Пора покормить " + names + "!"
+                    FeedReminderScheduler.reminderBody(context)
             );
         } else if (FeedReminderScheduler.ACTION_HUNGRY.equals(action)) {
             FeedNotifier.show(
                     context,
                     FeedNotifier.ID_HUNGRY,
                     "Мур-календарь",
-                    names + " совсем " + hungryVerb + "!"
+                    FeedReminderScheduler.hungryBody(context)
             );
         } else if (FeedReminderScheduler.ACTION_MORNING.equals(action)) {
             FeedNotifier.show(
                     context,
                     FeedNotifier.ID_MORNING,
                     "Мур-календарь",
-                    "Доброе утро! Не забудьте покормить " + names + "."
+                    FeedReminderScheduler.morningBody(context)
             );
-            /* Re-arm next morning. */
             FeedReminderScheduler.rescheduleAll(context);
         } else if (Intent.ACTION_BOOT_COMPLETED.equals(action)
                 || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {

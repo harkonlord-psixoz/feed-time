@@ -1215,6 +1215,11 @@
       overflow: visible;
     }
 
+    /* display:flex above beats UA [hidden]; keep calendar nav only on Главная */
+    .period-bar[hidden] {
+      display: none !important;
+    }
+
     .field {
       display: flex;
       flex-direction: column;
@@ -2204,7 +2209,7 @@
       const PROFILE_KEY = "mur-calendar-profile";
       const LAST_FEED_AT_KEY = "mur-calendar-last-feed-at";
       const GITHUB_PAT_KEY = "mur-calendar-github-pat";
-      const APP_VERSION = "1.7.0";
+      const APP_VERSION = "1.7.1";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
@@ -2601,22 +2606,51 @@
         return capitalizeFirst(petPhraseAccusative());
       }
 
-      /* Display names for notifications (nominative). */
-      function petNamesNominative() {
-        var pets = getPets();
-        var nicks = filledNicknames();
-        if (nicks.length === pets.length && nicks.length) return joinRuList(nicks);
-        if (!nicks.length && allSameSpecies()) return speciesForm("nom");
-        var parts = [];
-        for (var i = 0; i < pets.length; i++) {
-          var nick = pets[i].name ? String(pets[i].name).trim() : "";
-          parts.push(nick || speciesById(pets[i].species).nomSg);
-        }
-        return joinRuList(parts);
+      /* Nominative phrase for notification subjects (same helpers as chip/greetings). */
+      function petPhraseNominative() {
+        return petPhraseForCase("nom");
+      }
+
+      function nicknameLooksFeminine(name) {
+        var lower = String(name || "").trim().toLowerCase();
+        if (!lower || !/[а-яё]$/i.test(lower)) return false;
+        var last = lower.charAt(lower.length - 1);
+        return last === "а" || last === "я" || last === "ь";
+      }
+
+      function speciesLooksFeminine(sp) {
+        var n = String((sp && sp.nomSg) || "");
+        var last = n.charAt(n.length - 1);
+        return last === "а" || last === "я" || last === "ь";
       }
 
       function hungryVerb() {
-        return petCount() > 1 ? "проголодались" : "проголодался";
+        if (petCount() > 1) return "проголодались";
+        var pets = getPets();
+        var pet = pets[0];
+        if (!pet) return "проголодался";
+        var nick = pet.name ? String(pet.name).trim() : "";
+        var fem = nick
+          ? nicknameLooksFeminine(nick)
+          : speciesLooksFeminine(speciesById(pet.species));
+        return fem ? "проголодалась" : "проголодался";
+      }
+
+      /* Full notification bodies — already declined; Android shows them as-is. */
+      function notifJustFedBody() {
+        return capitalizeFirst(petPhraseAccusative()) + " покормили только что";
+      }
+
+      function notifReminderBody() {
+        return "Пора покормить " + petPhraseAccusative() + "!";
+      }
+
+      function notifHungryBody() {
+        return capitalizeFirst(petPhraseNominative()) + " совсем " + hungryVerb() + "!";
+      }
+
+      function notifMorningBody() {
+        return "Доброе утро! Не забудьте покормить " + petPhraseAccusative() + ".";
       }
 
       function petCountWord(n) {
@@ -2879,9 +2913,11 @@
       function setAppView(name) {
         if (name !== "home" && name !== "profile" && name !== "settings") name = "home";
         currentView = name;
+        document.documentElement.setAttribute("data-view", name);
         viewHome.hidden = name !== "home";
         viewProfile.hidden = name !== "profile";
         viewSettings.hidden = name !== "settings";
+        /* Month/year dropdowns + prev/next/Сегодня only on Главная (calendar). */
         if (periodBar) periodBar.hidden = name !== "home";
         document.querySelectorAll(".nav-item[data-nav]").forEach(function (btn) {
           btn.classList.toggle("is-active", btn.getAttribute("data-nav") === name);
@@ -3866,25 +3902,30 @@
       }
 
       function notifyJustFed() {
-        var names = petNamesNominative();
-        var title = names + " покормили только что";
+        var body = notifJustFedBody();
         try {
           if (window.MurCalendarAndroid && typeof window.MurCalendarAndroid.notifyJustFed === "function") {
-            window.MurCalendarAndroid.notifyJustFed(names);
+            window.MurCalendarAndroid.notifyJustFed(body);
             return;
           }
         } catch (e) {}
-        webNotify("Мур-календарь", title, "mur-just-fed");
-        showToast(title);
+        webNotify("Мур-календарь", body, "mur-just-fed");
+        showToast(body);
       }
 
       function syncFeedNotifications() {
-        var names = petNamesNominative();
         var lastMs = getLastFeedAtMs();
-        var count = String(petCount());
+        var reminder = notifReminderBody();
+        var hungry = notifHungryBody();
+        var morning = notifMorningBody();
         try {
           if (window.MurCalendarAndroid && typeof window.MurCalendarAndroid.scheduleFeedReminders === "function") {
-            window.MurCalendarAndroid.scheduleFeedReminders(String(lastMs || 0), names, count);
+            window.MurCalendarAndroid.scheduleFeedReminders(
+              String(lastMs || 0),
+              reminder,
+              hungry,
+              morning
+            );
             return;
           }
         } catch (e) {}
@@ -3917,13 +3958,13 @@
           }
           var remAt = adjustQuiet(base + Math.round(3.5 * 3600 * 1000));
           var hungAt = adjustQuiet(base + 5 * 3600 * 1000);
-          scheduleWeb(remAt - now, "Пора покормить " + names + "!", "mur-reminder");
-          scheduleWeb(hungAt - now, names + " совсем " + hungryVerb() + "!", "mur-hungry");
+          scheduleWeb(remAt - now, reminder, "mur-reminder");
+          scheduleWeb(hungAt - now, hungry, "mur-hungry");
           /* Morning 06:15 once if still before tomorrow morning. */
           var morn = new Date();
           morn.setHours(6, 15, 0, 0);
           if (morn.getTime() <= now) morn.setDate(morn.getDate() + 1);
-          scheduleWeb(morn.getTime() - now, "Доброе утро! Не забудьте покормить " + names + ".", "mur-morning");
+          scheduleWeb(morn.getTime() - now, morning, "mur-morning");
         } catch (e) {}
       }
 

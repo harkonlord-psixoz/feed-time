@@ -1,4 +1,4 @@
-# Мур-календарь — Android APK (v1.7)
+# Мур-календарь — Android APK (v1.7.1)
 
 ## Что собрано
 
@@ -8,11 +8,17 @@
 - **Тип:** debug APK (подписан debug-ключом Gradle, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Мур-календарь
-- **Версия:** `1.7.0` (versionCode **9**)
+- **Версия:** `1.7.1` (versionCode **10**)
 - **Содержимое:** WebView + виджет + **локальные уведомления** (AlarmManager)
-- **Содержимое HTML:** `assets/index.html` **147311** байт (байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`)
-- **Размер APK:** **66231** байт
-- **Последняя пересборка:** CF-19/20/21 — per-pet вид, палитра в Настройках, notif hooks, widget art plan doc.
+- **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
+- **Последняя пересборка:** CF-22 — падежи в оповещениях + скрытие месяц/год на Профиле/Настройках.
+
+## Падежи в оповещениях и чистый профиль (CF-22)
+
+1. Тексты morning / remind / hungry / just-fed собираются в JS теми же хелперами, что чип и приветствия (`petPhraseAccusative` / nominative, `declineNickname`: Лия→Лию/Лии).
+2. Android получает **уже склонённые фразы** (`notifyJustFed(body)`, `scheduleFeedReminders(lastMs, reminder, hungry, morning)`) и показывает их как есть.
+3. Hungry: род глагола — `проголодалась` / `проголодался` / `проголодались`.
+4. На Профиле и в Настройках скрыты месяц/год, ‹ › и «Сегодня» (`.period-bar[hidden]` — `display:flex` больше не перебивает `hidden`).
 
 ## Профиль и палитра (CF-19)
 
@@ -21,9 +27,9 @@
 3. Миграция legacy `{ species, count, names[] }` → `{ version: 2, pets: [{ species, name }] }`.
 4. **Палитра** перенесена с главной в **Настройки**.
 
-## Уведомления (CF-20)
+## Уведомления (CF-20 → CF-22)
 
-1. Мост: `notifyJustFed(names)`, `scheduleFeedReminders(lastMs, names, count)`.
+1. Мост: `notifyJustFed(body)`, `scheduleFeedReminders(lastMs, reminderBody, hungryBody, morningBody)` — фразы из JS.
 2. Нативные: `FeedNotifier`, `FeedReminderScheduler`, `FeedAlarmReceiver` (reminder ~3.5ч, hungry 5ч, morning 06:15, quiet 23–06).
 3. Web: stub Notification API + timers (только открытая вкладка) — см. `family-sync-and-notifications.md`.
 4. **Потом:** настройка интервала 3–4 ч в UI.

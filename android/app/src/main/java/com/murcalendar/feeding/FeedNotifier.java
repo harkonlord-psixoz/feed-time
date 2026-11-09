@@ -10,7 +10,7 @@ import android.os.Build;
 
 /**
  * Local notifications via NotificationManager (no FCM).
- * WebView cannot schedule reliable background alerts — native AlarmManager does.
+ * Bodies arrive already declined from JS — do not reassemble cases here.
  */
 public final class FeedNotifier {
     public static final String CHANNEL_ID = "mur_feeding";
@@ -55,20 +55,24 @@ public final class FeedNotifier {
         } else {
             b = new Notification.Builder(context);
         }
+        String safeBody = body == null ? "" : body;
         b.setContentTitle(title == null ? "Мур-календарь" : title)
-                .setContentText(body == null ? "" : body)
+                .setContentText(safeBody)
                 .setSmallIcon(android.R.drawable.ic_menu_recent_history)
                 .setContentIntent(pi)
                 .setAutoCancel(true)
-                .setStyle(new Notification.BigTextStyle().bigText(body == null ? "" : body));
+                .setStyle(new Notification.BigTextStyle().bigText(safeBody));
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             b.setPriority(Notification.PRIORITY_DEFAULT);
         }
         nm.notify(id, b.build());
     }
 
-    public static void justFed(Context context, String names) {
-        String n = (names == null || names.trim().isEmpty()) ? "питомцев" : names.trim();
-        show(context, ID_JUST_FED, "Мур-календарь", n + " покормили только что");
+    /** @param body full already-declined phrase from JS */
+    public static void justFed(Context context, String body) {
+        String text = (body == null || body.trim().isEmpty())
+                ? "Питомца покормили только что"
+                : body.trim();
+        show(context, ID_JUST_FED, "Мур-календарь", text);
     }
 }

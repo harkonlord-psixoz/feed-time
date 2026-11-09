@@ -22,25 +22,31 @@ public class MurJsBridge {
         FeedingAppWidget.requestUpdate(appContext);
     }
 
-    /** Immediate toast-style notification after feed button. */
+    /** Immediate notification after feed button — body already declined in JS. */
     @JavascriptInterface
-    public void notifyJustFed(String names) {
-        FeedNotifier.justFed(appContext, names);
+    public void notifyJustFed(String body) {
+        FeedNotifier.justFed(appContext, body);
     }
 
     /**
-     * Persist last-feed timestamp + names and (re)schedule AlarmManager reminders.
+     * Persist last-feed timestamp + pre-declined notification bodies; reschedule alarms.
      * @param lastFeedMs epoch millis as string (0 = unknown / use now as base)
-     * @param names display names for copy
-     * @param petCount number of pets (for verb agreement)
+     * @param reminderBody full «Пора покормить …!» phrase
+     * @param hungryBody full «… совсем проголодал…!» phrase
+     * @param morningBody full morning phrase
      */
     @JavascriptInterface
-    public void scheduleFeedReminders(String lastFeedMs, String names, String petCount) {
+    public void scheduleFeedReminders(
+            String lastFeedMs,
+            String reminderBody,
+            String hungryBody,
+            String morningBody
+    ) {
         long ms = 0L;
         try {
             ms = Long.parseLong(lastFeedMs == null ? "0" : lastFeedMs.trim());
         } catch (Exception ignored) {}
-        FeedReminderScheduler.saveState(appContext, ms, names, petCount);
+        FeedReminderScheduler.saveState(appContext, ms, reminderBody, hungryBody, morningBody);
         FeedReminderScheduler.rescheduleAll(appContext);
     }
 }
