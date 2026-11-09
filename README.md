@@ -59,6 +59,29 @@ Release: `./gradlew assembleRelease` + свой keystore (пока не наст
 
 ---
 
+## Проверка обновлений (GitHub Releases)
+
+В приложении: **Настройки → Проверить обновления**.  
+Запрос идёт к `GET /repos/harkonlord-psixoz/feed-time/releases/latest`.  
+Опциональный GitHub PAT хранится только в `localStorage` устройства (ключ `mur-calendar-github-pat`) — **никогда не коммитьте токены**.
+
+Публичные Releases работают без токена; PAT нужен при лимитах API (60/час без auth) или для private repo.
+
+### Как опубликовать Release с APK
+
+1. Соберите debug APK (`./gradlew assembleDebug`) или возьмите `releases/mur-calendar.apk`.
+2. На GitHub: **Releases → Draft a new release**.
+3. Tag: `v1.6.0` (или следующий semver; совпадает с `versionName` / `APP_VERSION` в HTML).
+4. Title / notes — что изменилось.
+5. **Attach binaries**: загрузите `mur-calendar.apk` (имя с `.apk` — приложение найдёт вложение).
+6. Publish release.
+
+После публикации «Проверить обновления» покажет tag, ссылку на релиз и прямую ссылку на APK.
+
+Текущая версия приложения в коде: **1.6.0** (`web/index.html` → `APP_VERSION`, Android `versionName`).
+
+---
+
 ## Документация / Docs
 
 | Файл | О чём |

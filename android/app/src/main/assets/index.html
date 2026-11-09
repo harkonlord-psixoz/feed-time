@@ -956,6 +956,150 @@
       font-size: 0.98rem;
     }
 
+    .settings-form {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+      max-width: 28rem;
+    }
+
+    .settings-form .field {
+      width: 100%;
+    }
+
+    .settings-version {
+      margin: 1.1rem 0 0;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--ink-soft);
+    }
+
+    .settings-version strong {
+      color: var(--accent-deep);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .settings-hint {
+      margin: 0.45rem 0 0;
+      font-size: 0.88rem;
+      line-height: 1.4;
+      color: var(--ink-soft);
+      max-width: 28rem;
+    }
+
+    .settings-pat-input {
+      appearance: none;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: var(--font-ui);
+      font-size: 1.02rem;
+      font-weight: 500;
+      color: var(--ink);
+      background: color-mix(in srgb, var(--paper) 80%, var(--lift));
+      border: 1.5px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+      border-radius: 14px;
+      padding: 0.55rem 0.9rem;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .settings-pat-input::placeholder {
+      color: color-mix(in srgb, var(--ink-soft) 70%, transparent);
+    }
+
+    .settings-pat-input:hover {
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+    }
+
+    .settings-pat-input:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 65%, transparent);
+      background: var(--menu-bg);
+    }
+
+    .update-check-btn {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      width: 100%;
+      max-width: 28rem;
+      padding: 0.75rem 1.35rem;
+      border-radius: 16px;
+      border: 1.5px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 75%, var(--paper)), color-mix(in srgb, var(--warm) 55%, var(--paper)));
+      color: var(--accent-deep);
+      font-family: var(--font-display);
+      font-size: clamp(1.2rem, 2.8vw, 1.45rem);
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+    }
+
+    .update-check-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 12px 28px color-mix(in srgb, var(--accent-deep) 18%, transparent);
+    }
+
+    .update-check-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .update-check-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 70%, transparent);
+    }
+
+    .update-check-btn:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    .update-result {
+      margin: 0;
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      background: var(--slot);
+      border: 1px solid var(--line);
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .update-result[hidden] {
+      display: none;
+    }
+
+    .update-result.is-ok {
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+      color: var(--ink);
+    }
+
+    .update-result.is-error {
+      border-color: color-mix(in srgb, #b54a4a 45%, var(--line));
+      color: color-mix(in srgb, #8a3030 70%, var(--ink));
+    }
+
+    .update-result a {
+      color: var(--accent-deep);
+      font-weight: 700;
+      text-underline-offset: 2px;
+    }
+
+    .update-result .update-meta {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 0.88rem;
+      color: var(--ink-soft);
+    }
+
     .hero-tools {
       margin-left: auto;
       display: inline-flex;
@@ -1926,7 +2070,33 @@
     <div class="app-view" id="view-settings" data-view="settings" hidden>
       <section class="panel-card" aria-labelledby="settings-title">
         <h2 id="settings-title">Настройки</h2>
-        <p>Скоро сюда переедут предпочтения. Палитру и слоты пока меняйте на главной.</p>
+        <p>Палитру и слоты пока меняйте на главной; тема — в боковом меню.</p>
+        <p class="settings-version">Версия приложения: <strong id="app-version-label">—</strong></p>
+
+        <div class="settings-form">
+          <div class="field">
+            <label for="github-pat-input">Токен GitHub (необязательно)</label>
+            <input
+              type="password"
+              id="github-pat-input"
+              class="settings-pat-input"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="256"
+              placeholder="ghp_… или github_pat_…"
+              aria-describedby="github-pat-hint"
+            />
+            <p class="settings-hint" id="github-pat-hint">
+              Публичные Releases работают без токена. Токен помогает при лимитах API и для частных репозиториев.
+              Хранится только в localStorage на этом устройстве — в git не попадает.
+            </p>
+          </div>
+          <div class="field">
+            <button type="button" class="update-check-btn" id="update-check-btn">Проверить обновления</button>
+            <div class="update-result" id="update-result" hidden role="status" aria-live="polite"></div>
+          </div>
+        </div>
+
         <ul class="settings-list">
           <li>Светлая / тёмная тема — в боковом меню (солнце / луна)</li>
           <li>Палитра и число слотов — на экране «Главная»</li>
@@ -2009,6 +2179,10 @@
       const MODE_KEY = "mur-calendar-mode";
       const SLOTS_KEY = "mur-calendar-slots";
       const PROFILE_KEY = "mur-calendar-profile";
+      const GITHUB_PAT_KEY = "mur-calendar-github-pat";
+      const APP_VERSION = "1.6.0";
+      const GITHUB_REPO = "harkonlord-psixoz/feed-time";
+      const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
 
       const now = new Date();
@@ -2037,6 +2211,10 @@
       const themeBar = document.querySelector(".theme-bar");
       const periodBar = document.querySelector(".period-bar");
       const feedBtn = document.getElementById("feed-btn");
+      const appVersionLabel = document.getElementById("app-version-label");
+      const githubPatInput = document.getElementById("github-pat-input");
+      const updateCheckBtn = document.getElementById("update-check-btn");
+      const updateResultEl = document.getElementById("update-result");
       const lastFeedEl = document.getElementById("last-feed");
       const toastEl = document.getElementById("toast");
       const profileSummaryName = document.getElementById("profile-summary-name");
@@ -3434,11 +3612,171 @@
         applyPetCopy();
       }
 
+      function loadGithubPat() {
+        try {
+          return localStorage.getItem(GITHUB_PAT_KEY) || "";
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function saveGithubPat(value) {
+        try {
+          var trimmed = String(value || "").trim();
+          if (trimmed) localStorage.setItem(GITHUB_PAT_KEY, trimmed);
+          else localStorage.removeItem(GITHUB_PAT_KEY);
+        } catch (e) {}
+      }
+
+      function normalizeVersionTag(tag) {
+        return String(tag || "").trim().replace(/^v/i, "");
+      }
+
+      function compareSemver(a, b) {
+        var pa = normalizeVersionTag(a).split(/[.+-]/).map(function (x) {
+          var n = parseInt(x, 10);
+          return isNaN(n) ? 0 : n;
+        });
+        var pb = normalizeVersionTag(b).split(/[.+-]/).map(function (x) {
+          var n = parseInt(x, 10);
+          return isNaN(n) ? 0 : n;
+        });
+        var len = Math.max(pa.length, pb.length);
+        for (var i = 0; i < len; i++) {
+          var da = pa[i] || 0;
+          var db = pb[i] || 0;
+          if (da > db) return 1;
+          if (da < db) return -1;
+        }
+        return 0;
+      }
+
+      function findApkAsset(assets) {
+        if (!Array.isArray(assets)) return null;
+        var preferred = null;
+        for (var i = 0; i < assets.length; i++) {
+          var a = assets[i];
+          if (!a || !a.name) continue;
+          var name = String(a.name).toLowerCase();
+          if (!/\.apk$/i.test(name)) continue;
+          if (/mur-calendar|murcalendar|feed-time/i.test(name)) return a;
+          if (!preferred) preferred = a;
+        }
+        return preferred;
+      }
+
+      function setUpdateResult(html, kind) {
+        if (!updateResultEl) return;
+        updateResultEl.hidden = false;
+        updateResultEl.classList.remove("is-ok", "is-error");
+        if (kind) updateResultEl.classList.add(kind);
+        updateResultEl.innerHTML = html;
+      }
+
+      function escapeHtml(str) {
+        return String(str == null ? "" : str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      async function checkForUpdates() {
+        if (!updateCheckBtn) return;
+        updateCheckBtn.disabled = true;
+        setUpdateResult("Проверяю GitHub Releases…", null);
+        var headers = {
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28"
+        };
+        var pat = githubPatInput ? String(githubPatInput.value || "").trim() : loadGithubPat();
+        if (pat) headers.Authorization = "Bearer " + pat;
+
+        try {
+          var res = await fetch(GITHUB_LATEST_URL, { headers: headers });
+          if (res.status === 404) {
+            setUpdateResult(
+              "Релизов пока нет. Когда появится Release в репозитории <code>" +
+                escapeHtml(GITHUB_REPO) +
+                "</code>, здесь покажется свежая версия.",
+              "is-error"
+            );
+            return;
+          }
+          if (res.status === 401 || res.status === 403) {
+            var lim = res.headers.get("X-RateLimit-Remaining");
+            setUpdateResult(
+              "GitHub отклонил запрос (" + res.status + "). " +
+                (lim === "0"
+                  ? "Исчерпан лимит API — подождите или укажите PAT."
+                  : "Проверьте токен (scope <code>public_repo</code> / доступ к репо) или попробуйте без токена для публичных Releases."),
+              "is-error"
+            );
+            return;
+          }
+          if (!res.ok) {
+            setUpdateResult("Не удалось получить релиз: HTTP " + res.status + ".", "is-error");
+            return;
+          }
+          var data = await res.json();
+          var tag = data.tag_name || data.name || "";
+          var latest = normalizeVersionTag(tag);
+          var current = normalizeVersionTag(APP_VERSION);
+          var cmp = compareSemver(latest, current);
+          var releaseUrl = data.html_url || ("https://github.com/" + GITHUB_REPO + "/releases");
+          var apk = findApkAsset(data.assets);
+          var statusLine;
+          if (!latest) {
+            statusLine = "Ответ GitHub без номера версии.";
+          } else if (cmp > 0) {
+            statusLine = "Доступна новая версия <strong>" + escapeHtml(latest) + "</strong> (у вас <strong>" + escapeHtml(current) + "</strong>).";
+          } else if (cmp === 0) {
+            statusLine = "У вас актуальная версия <strong>" + escapeHtml(current) + "</strong>.";
+          } else {
+            statusLine = "У вас версия <strong>" + escapeHtml(current) + "</strong>, на GitHub latest — <strong>" + escapeHtml(latest) + "</strong>.";
+          }
+          var links = '<a href="' + escapeHtml(releaseUrl) + '" target="_blank" rel="noopener noreferrer">Открыть релиз</a>';
+          if (apk && apk.browser_download_url) {
+            links += ' · <a href="' + escapeHtml(apk.browser_download_url) + '" target="_blank" rel="noopener noreferrer">Скачать APK (' + escapeHtml(apk.name) + ")</a>";
+          } else {
+            links += '<span class="update-meta">APK-вложения в этом релизе нет — см. страницу релиза.</span>';
+          }
+          setUpdateResult(statusLine + "<br/>" + links, "is-ok");
+        } catch (err) {
+          setUpdateResult(
+            "Сеть недоступна или запрос заблокирован. Нужен интернет; в браузере удобнее открыть через локальный сервер, не как file://.",
+            "is-error"
+          );
+        } finally {
+          updateCheckBtn.disabled = false;
+        }
+      }
+
+      function initSettingsUi() {
+        if (appVersionLabel) appVersionLabel.textContent = APP_VERSION;
+        if (githubPatInput) {
+          githubPatInput.value = loadGithubPat();
+          githubPatInput.addEventListener("change", function () {
+            saveGithubPat(githubPatInput.value);
+          });
+          githubPatInput.addEventListener("blur", function () {
+            saveGithubPat(githubPatInput.value);
+          });
+        }
+        if (updateCheckBtn) {
+          updateCheckBtn.addEventListener("click", function () {
+            saveGithubPat(githubPatInput ? githubPatInput.value : "");
+            checkForUpdates();
+          });
+        }
+      }
+
       buildMonthMenu();
       buildYearMenu();
       syncControls();
       renderMonth();
       initProfileUi();
+      initSettingsUi();
       syncAndroidBridge();
     })();
   </script>

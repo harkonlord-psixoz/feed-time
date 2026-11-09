@@ -1,16 +1,26 @@
-# Мур-календарь — Android APK (v1.5)
+# Мур-календарь — Android APK (v1.6)
 
 ## Что собрано
 
 - **Файл:** [mur-calendar.apk](./mur-calendar.apk)  
-  Абсолютный путь: `/cursor/stores/self/docs/mur-calendar.apk`
+  Абсолютный путь: `/cursor/stores/self/docs/mur-calendar.apk`  
+  В репозитории: `releases/mur-calendar.apk`
 - **Тип:** debug APK (подписан debug-ключом Gradle, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Мур-календарь
-- **Версия:** `1.5.1` (versionCode **7**)
-- **Содержимое:** WebView-обёртка вокруг `cat-feeding-calendar.html` (локальный `assets/index.html`, **123552** байт) + **виджет** рабочего стола
-- **Размер APK:** **54867** байт (~54 KiB)
-- **Последняя пересборка:** CF-16 — падежи вида/кличек (род./дат./вин.) + фикс прыжка скролла `.dd` меню; `assets/index.html` байт-в-байт с docs HTML.
+- **Версия:** `1.6.0` (versionCode **8**)
+- **Содержимое:** WebView-обёртка вокруг `cat-feeding-calendar.html` (локальный `assets/index.html`) + **виджет** рабочего стола
+- **Содержимое HTML:** `assets/index.html` **135939** байт (байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`)
+- **Размер APK:** **58459** байт (~57 KiB)
+- **Последняя пересборка:** CF-18 — проверка обновлений через GitHub Releases (Настройки: PAT + «Проверить обновления»), bump 1.6.0.
+
+## Проверка обновлений (CF-18)
+
+1. Меню → **Настройки**: поле PAT (localStorage, опционально) и кнопка **«Проверить обновления»**.
+2. Запрос: `https://api.github.com/repos/harkonlord-psixoz/feed-time/releases/latest` (`Authorization: Bearer …` если токен задан).
+3. UI показывает текущую `APP_VERSION` vs `tag_name`, ссылку на релиз и APK-asset (если прикреплён).
+4. WebView: `AllowUniversalAccessFromFileURLs` — чтобы fetch с `file:///android_asset/` доходил до api.github.com.
+5. Секреты в git не коммитить (см. `.gitignore`: `.env`, keystore, `local.properties`).
 
 ## Падежи и скролл списков (CF-16)
 
