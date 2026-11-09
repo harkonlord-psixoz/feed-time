@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Google Fonts over HTTPS only -->
-    <base-config cleartextTrafficPermitted="false" />
+    <!--
+      Cleartext allowed so the user can point the app at a personal VPS by IP
+      (http://x.x.x.x:3080) during setup. Prefer HTTPS + Let’s Encrypt in production.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

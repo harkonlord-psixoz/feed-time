@@ -13,3 +13,6 @@ android/app/build/
 !android/mur-calendar-debug.keystore
 local.properties
 .env
+server/node_modules/
+server/.env
+*.sql.gz

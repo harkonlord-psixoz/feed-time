@@ -1,0 +1,9 @@
+# Used when docker compose --profile tls up -d
+# Set DOMAIN in .env (example.com). Caddy obtains Let's Encrypt automatically.
+# For IP-only / self-signed, skip the caddy service and terminate TLS yourself,
+# or put a reverse proxy in front — see docs/vps-api-deploy.md.
+
+{$DOMAIN:localhost} {
+	encode gzip
+	reverse_proxy api:3080
+}

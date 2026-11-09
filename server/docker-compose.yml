@@ -1,0 +1,57 @@
+# Feed Time API + Postgres (+ optional Caddy TLS)
+# Copy .env.example → .env and fill secrets before `docker compose up -d`.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-feedtime}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-feedtime}
+    volumes:
+      - feedtime_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-feedtime} -d ${POSTGRES_DB:-feedtime}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-feedtime}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-feedtime}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL_DAYS: ${JWT_REFRESH_TTL_DAYS:-30}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      PORT: "3080"
+      HOST: "0.0.0.0"
+    ports:
+      # Bind to localhost when using Caddy; expose publicly only for IP/self-signed tests
+      - "${API_BIND:-127.0.0.1:3080}:3080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ["tls"]
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  feedtime_pg:
+  caddy_data:
+  caddy_config:

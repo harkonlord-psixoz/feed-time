@@ -1127,6 +1127,58 @@
       text-underline-offset: 2px;
     }
 
+    .sync-box {
+      margin-top: 0.35rem;
+      padding: 1rem 1.05rem;
+      border-radius: 16px;
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+      background: color-mix(in srgb, var(--paper) 72%, var(--lift));
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .sync-box h3 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      color: var(--accent-deep);
+    }
+
+    .sync-status {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--ink-soft);
+      line-height: 1.4;
+    }
+
+    .sync-status strong {
+      color: var(--accent-deep);
+    }
+
+    .sync-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .sync-row .update-check-btn {
+      width: auto;
+      flex: 1 1 8rem;
+      max-width: none;
+      padding: 0.55rem 1rem;
+      font-size: 1.15rem;
+    }
+
+    .sync-row .update-check-btn.is-ghost {
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .sync-hidden[hidden] {
+      display: none !important;
+    }
+
     .update-result .update-meta {
       display: block;
       margin-top: 0.35rem;
@@ -2111,6 +2163,76 @@
           </div>
 
           <div class="field">
+            <div class="sync-box" id="sync-box">
+              <h3>Сервер и семья</h3>
+              <p class="sync-status" id="sync-status">Офлайн на устройстве. Укажите URL своего VPS, чтобы синхронизировать календарь.</p>
+
+              <div class="field">
+                <label for="sync-server-url">URL сервера</label>
+                <input
+                  type="url"
+                  id="sync-server-url"
+                  class="settings-pat-input"
+                  autocomplete="url"
+                  spellcheck="false"
+                  maxlength="256"
+                  placeholder="https://feed.example.com или http://IP:3080"
+                  aria-describedby="sync-server-hint"
+                />
+                <p class="settings-hint" id="sync-server-hint">
+                  Свой API на VPS (см. docs/vps-api-deploy.md). Без слэша в конце. Тема и локальные ключи mur-calendar-* остаются на устройстве.
+                </p>
+              </div>
+
+              <div id="sync-auth-form" class="sync-hidden">
+                <div class="field">
+                  <label for="sync-display-name">Имя</label>
+                  <input type="text" id="sync-display-name" class="settings-pat-input" maxlength="64" placeholder="Мама" autocomplete="nickname" />
+                </div>
+                <div class="field">
+                  <label for="sync-email">Email</label>
+                  <input type="email" id="sync-email" class="settings-pat-input" maxlength="120" placeholder="you@example.com" autocomplete="username" />
+                </div>
+                <div class="field">
+                  <label for="sync-password">Пароль</label>
+                  <input type="password" id="sync-password" class="settings-pat-input" maxlength="128" placeholder="не короче 8 символов" autocomplete="current-password" />
+                </div>
+                <div class="sync-row">
+                  <button type="button" class="update-check-btn" id="sync-login-btn">Войти</button>
+                  <button type="button" class="update-check-btn is-ghost" id="sync-register-btn">Регистрация</button>
+                </div>
+              </div>
+
+              <div id="sync-family-form" class="sync-hidden" hidden>
+                <div class="field">
+                  <label for="sync-household-name">Название семьи</label>
+                  <input type="text" id="sync-household-name" class="settings-pat-input" maxlength="64" placeholder="Дом" />
+                </div>
+                <div class="sync-row">
+                  <button type="button" class="update-check-btn" id="sync-create-family-btn">Создать семью</button>
+                </div>
+                <div class="field">
+                  <label for="sync-invite-code">Код приглашения</label>
+                  <input type="text" id="sync-invite-code" class="settings-pat-input" maxlength="16" placeholder="ABCD1234" autocomplete="off" style="text-transform:uppercase" />
+                </div>
+                <div class="sync-row">
+                  <button type="button" class="update-check-btn" id="sync-join-family-btn">Вступить по коду</button>
+                  <button type="button" class="update-check-btn is-ghost" id="sync-logout-btn">Выйти из аккаунта</button>
+                </div>
+              </div>
+
+              <div id="sync-connected" class="sync-hidden" hidden>
+                <p class="sync-status" id="sync-connected-detail"></p>
+                <div class="sync-row">
+                  <button type="button" class="update-check-btn" id="sync-now-btn">Синхронизировать сейчас</button>
+                  <button type="button" class="update-check-btn is-ghost" id="sync-leave-btn">Покинуть семью</button>
+                  <button type="button" class="update-check-btn is-ghost" id="sync-logout-btn-2">Выйти</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
             <label for="github-pat-input">Токен GitHub (необязательно)</label>
             <input
               type="password"
@@ -2138,6 +2260,7 @@
           <li>Палитра — выше на этом экране; число слотов — на «Главной»</li>
           <li>Оповещения: Android — локальные (AlarmManager); веб — план Notification API</li>
           <li>Интервал напоминаний 3–4 ч и тихие часы 23:00–06:00 — см. docs</li>
+          <li>Семейный синк — свой VPS API (не Supabase); офлайн-очередь + localStorage</li>
         </ul>
       </section>
     </div>
@@ -2218,7 +2341,11 @@
       const PROFILE_KEY = "mur-calendar-profile";
       const LAST_FEED_AT_KEY = "mur-calendar-last-feed-at";
       const GITHUB_PAT_KEY = "mur-calendar-github-pat";
-      const APP_VERSION = "1.7.5";
+      const SYNC_SERVER_KEY = "mur-calendar-sync-server";
+      const SYNC_SESSION_KEY = "mur-calendar-sync-session";
+      const SYNC_QUEUE_KEY = "mur-calendar-sync-queue";
+      const SYNC_CLIENT_IDS_KEY = "mur-calendar-sync-client-ids";
+      const APP_VERSION = "1.8.0";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
@@ -2725,7 +2852,7 @@
         return arr && arr[slotIndex] ? arr[slotIndex] : "";
       }
 
-      function setSlotValue(year, monthIndex, day, slotIndex, value) {
+      function setSlotValue(year, monthIndex, day, slotIndex, value, opts) {
         var key = dayKey(year, monthIndex, day);
         var arr = normalizeDaySlots(timesStore[key]);
         if (slotIndex < 0 || slotIndex >= slotCount) return;
@@ -2738,6 +2865,9 @@
         }
         saveTimes();
         updateLastFeedLabel();
+        if (!(opts && opts.skipSync)) {
+          enqueueFeedingSync(key, slotIndex, value || "");
+        }
       }
 
       /* Latest filled slot among today's N (highest index with a value). */
@@ -4176,6 +4306,581 @@
             }
           });
         }
+        initSyncUi();
+      }
+
+      /* ——— Own-server family sync (VPS API) ——— */
+      var syncSession = loadSyncSession();
+      var syncQueue = loadSyncQueue();
+      var syncClientIds = loadSyncClientIds();
+      var syncFlushTimer = null;
+      var syncFlushing = false;
+      var syncWs = null;
+      var syncWsRetry = null;
+      var syncApplyingRemote = false;
+
+      function uuid4() {
+        if (typeof crypto !== "undefined" && crypto.randomUUID) {
+          return crypto.randomUUID();
+        }
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+          var r = (Math.random() * 16) | 0;
+          var v = c === "x" ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+      }
+
+      function loadSyncServerUrl() {
+        try {
+          return String(localStorage.getItem(SYNC_SERVER_KEY) || "").trim().replace(/\/+$/, "");
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function saveSyncServerUrl(url) {
+        try {
+          localStorage.setItem(SYNC_SERVER_KEY, String(url || "").trim().replace(/\/+$/, ""));
+        } catch (e) {}
+      }
+
+      function loadSyncSession() {
+        try {
+          var raw = localStorage.getItem(SYNC_SESSION_KEY);
+          if (!raw) return null;
+          var parsed = JSON.parse(raw);
+          return parsed && parsed.accessToken ? parsed : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function saveSyncSession(session) {
+        syncSession = session;
+        try {
+          if (!session) localStorage.removeItem(SYNC_SESSION_KEY);
+          else localStorage.setItem(SYNC_SESSION_KEY, JSON.stringify(session));
+        } catch (e) {}
+      }
+
+      function loadSyncQueue() {
+        try {
+          var raw = localStorage.getItem(SYNC_QUEUE_KEY);
+          var parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveSyncQueue() {
+        try {
+          localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(syncQueue));
+        } catch (e) {}
+      }
+
+      function loadSyncClientIds() {
+        try {
+          var raw = localStorage.getItem(SYNC_CLIENT_IDS_KEY);
+          var parsed = raw ? JSON.parse(raw) : {};
+          return parsed && typeof parsed === "object" ? parsed : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function saveSyncClientIds() {
+        try {
+          localStorage.setItem(SYNC_CLIENT_IDS_KEY, JSON.stringify(syncClientIds));
+        } catch (e) {}
+      }
+
+      function clientIdForSlot(day, slotIndex) {
+        var k = day + "|" + slotIndex;
+        if (!syncClientIds[k]) {
+          syncClientIds[k] = uuid4();
+          saveSyncClientIds();
+        }
+        return syncClientIds[k];
+      }
+
+      function normalizeApiBase(url) {
+        return String(url || "").trim().replace(/\/+$/, "");
+      }
+
+      function wsUrlFromApi(base, token) {
+        var u = normalizeApiBase(base);
+        if (!u) return "";
+        if (u.indexOf("https://") === 0) u = "wss://" + u.slice(8);
+        else if (u.indexOf("http://") === 0) u = "ws://" + u.slice(7);
+        else u = "ws://" + u;
+        return u + "/ws?token=" + encodeURIComponent(token);
+      }
+
+      async function apiFetch(path, options) {
+        var base = normalizeApiBase(loadSyncServerUrl());
+        if (!base) throw new Error("Укажите URL сервера");
+        var opts = options || {};
+        var headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+        if (syncSession && syncSession.accessToken && !opts.skipAuth) {
+          headers.Authorization = "Bearer " + syncSession.accessToken;
+        }
+        var res = await fetch(base + path, {
+          method: opts.method || "GET",
+          headers: headers,
+          body: opts.body != null ? JSON.stringify(opts.body) : undefined
+        });
+        if (res.status === 401 && syncSession && syncSession.refreshToken && !opts._retried) {
+          var refreshed = await refreshSyncSession();
+          if (refreshed) {
+            return apiFetch(path, Object.assign({}, opts, { _retried: true }));
+          }
+        }
+        var data = null;
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = null;
+        }
+        if (!res.ok) {
+          var err = new Error((data && data.error) || ("Ошибка HTTP " + res.status));
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      }
+
+      async function refreshSyncSession() {
+        if (!syncSession || !syncSession.refreshToken) return false;
+        try {
+          var base = normalizeApiBase(loadSyncServerUrl());
+          var res = await fetch(base + "/api/auth/refresh", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken: syncSession.refreshToken })
+          });
+          var data = await res.json();
+          if (!res.ok) {
+            saveSyncSession(null);
+            return false;
+          }
+          saveSyncSession({
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            user: data.user,
+            household: syncSession.household || null
+          });
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function enqueueFeedingSync(dayDate, slotIndex, time) {
+        if (syncApplyingRemote) return;
+        if (!syncSession || !syncSession.household) return;
+        var clientId = clientIdForSlot(dayDate, slotIndex);
+        var updatedAt = new Date().toISOString();
+        var item = {
+          dayDate: dayDate,
+          slotIndex: slotIndex,
+          time: time || "",
+          clientId: clientId,
+          updatedAt: updatedAt
+        };
+        syncQueue = syncQueue.filter(function (q) {
+          return !(q.dayDate === dayDate && q.slotIndex === slotIndex);
+        });
+        syncQueue.push(item);
+        saveSyncQueue();
+        scheduleSyncFlush();
+      }
+
+      function scheduleSyncFlush() {
+        if (syncFlushTimer) clearTimeout(syncFlushTimer);
+        syncFlushTimer = setTimeout(function () {
+          flushSyncQueue().catch(function () {});
+        }, 400);
+      }
+
+      async function flushSyncQueue() {
+        if (syncFlushing) return;
+        if (!syncSession || !syncSession.household) return;
+        if (!syncQueue.length) return;
+        syncFlushing = true;
+        updateSyncStatusUi();
+        try {
+          var batch = syncQueue.slice();
+          var data = await apiFetch("/api/feedings/sync", {
+            method: "POST",
+            body: { feedings: batch }
+          });
+          var results = (data && data.results) || [];
+          var failed = [];
+          for (var i = 0; i < results.length; i++) {
+            var r = results[i];
+            if (!r || !r.ok) {
+              if (batch[i]) failed.push(batch[i]);
+              continue;
+            }
+            if (r.feeding) applyRemoteFeeding(r.feeding, true);
+          }
+          /* Drop flushed items; keep only failed (or leftovers if short response) */
+          var doneIds = {};
+          for (var j = 0; j < results.length; j++) {
+            if (results[j] && results[j].ok && batch[j]) {
+              doneIds[batch[j].clientId] = true;
+            }
+          }
+          syncQueue = syncQueue.filter(function (q) {
+            return !doneIds[q.clientId];
+          });
+          for (var f = 0; f < failed.length; f++) {
+            if (syncQueue.indexOf(failed[f]) < 0) syncQueue.push(failed[f]);
+          }
+          saveSyncQueue();
+        } catch (e) {
+          /* keep queue for retry */
+        } finally {
+          syncFlushing = false;
+          updateSyncStatusUi();
+        }
+      }
+
+      function applyRemoteFeeding(feeding, fromOwnFlush) {
+        if (!feeding || !feeding.dayDate) return;
+        var parts = String(feeding.dayDate).split("-");
+        if (parts.length !== 3) return;
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10) - 1;
+        var d = parseInt(parts[2], 10);
+        var slotIndex = Number(feeding.slotIndex);
+        if (!(slotIndex >= 0)) return;
+        if (feeding.clientId) {
+          syncClientIds[feeding.dayDate + "|" + slotIndex] = feeding.clientId;
+          saveSyncClientIds();
+        }
+        syncApplyingRemote = true;
+        try {
+          var needSlots = slotIndex + 1;
+          if (needSlots > slotCount && (needSlots === 3 || needSlots === 4 || needSlots === 5)) {
+            setSlotCount(needSlots);
+          }
+          if (slotIndex < slotCount) {
+            setSlotValue(y, m, d, slotIndex, feeding.time || "", { skipSync: true });
+            if (!fromOwnFlush) renderMonth();
+          }
+        } finally {
+          syncApplyingRemote = false;
+        }
+      }
+
+      async function pullAllFeedings() {
+        if (!syncSession || !syncSession.household) return;
+        var t = new Date();
+        var fromY = t.getFullYear() - 1;
+        var toY = t.getFullYear() + 1;
+        var from = fromY + "-01-01";
+        var to = toY + "-12-31";
+        var data = await apiFetch("/api/feedings?from=" + from + "&to=" + to);
+        var list = (data && data.feedings) || [];
+        for (var i = 0; i < list.length; i++) applyRemoteFeeding(list[i], false);
+        renderMonth();
+        updateLastFeedLabel();
+      }
+
+      function queueLocalTimesForImport() {
+        Object.keys(timesStore).forEach(function (day) {
+          var arr = timesStore[day];
+          if (!Array.isArray(arr)) return;
+          for (var i = 0; i < arr.length; i++) {
+            if (arr[i]) enqueueFeedingSync(day, i, arr[i]);
+          }
+        });
+      }
+
+      function closeSyncWs() {
+        if (syncWsRetry) {
+          clearTimeout(syncWsRetry);
+          syncWsRetry = null;
+        }
+        if (syncWs) {
+          try {
+            syncWs.onclose = null;
+            syncWs.close();
+          } catch (e) {}
+          syncWs = null;
+        }
+      }
+
+      function openSyncWs() {
+        closeSyncWs();
+        if (!syncSession || !syncSession.household || !syncSession.accessToken) return;
+        var url = wsUrlFromApi(loadSyncServerUrl(), syncSession.accessToken);
+        if (!url) return;
+        try {
+          syncWs = new WebSocket(url);
+        } catch (e) {
+          return;
+        }
+        syncWs.onmessage = function (ev) {
+          try {
+            var msg = JSON.parse(ev.data);
+            if (msg && msg.type === "feeding" && msg.feeding) {
+              applyRemoteFeeding(msg.feeding, false);
+              updateSyncStatusUi();
+            }
+          } catch (e) {}
+        };
+        syncWs.onclose = function () {
+          syncWs = null;
+          if (syncSession && syncSession.household) {
+            syncWsRetry = setTimeout(openSyncWs, 4000);
+          }
+        };
+      }
+
+      function updateSyncStatusUi() {
+        var statusEl = document.getElementById("sync-status");
+        var authForm = document.getElementById("sync-auth-form");
+        var familyForm = document.getElementById("sync-family-form");
+        var connected = document.getElementById("sync-connected");
+        var detail = document.getElementById("sync-connected-detail");
+        var url = loadSyncServerUrl();
+        if (statusEl) {
+          if (!url) {
+            statusEl.innerHTML = "Офлайн на устройстве. Укажите URL своего VPS, чтобы синхронизировать календарь.";
+          } else if (!syncSession) {
+            statusEl.innerHTML = "Сервер: <strong>" + escapeHtml(url) + "</strong> — войдите или зарегистрируйтесь.";
+          } else if (!syncSession.household) {
+            statusEl.innerHTML =
+              "Вы вошли как <strong>" +
+              escapeHtml((syncSession.user && syncSession.user.displayName) || "") +
+              "</strong>. Создайте семью или введите код.";
+          } else {
+            var q = syncQueue.length;
+            statusEl.innerHTML =
+              "Семья <strong>" +
+              escapeHtml(syncSession.household.name || "") +
+              "</strong> · " +
+              (q ? "очередь: " + q : syncFlushing ? "синхронизация…" : "синхронизировано");
+          }
+        }
+        var loggedIn = !!syncSession;
+        var inFamily = !!(syncSession && syncSession.household);
+        if (authForm) authForm.hidden = loggedIn;
+        if (familyForm) familyForm.hidden = !loggedIn || inFamily;
+        if (connected) connected.hidden = !inFamily;
+        if (detail && inFamily) {
+          detail.innerHTML =
+            "Код приглашения: <strong>" +
+            escapeHtml(syncSession.household.inviteCode || "") +
+            "</strong> · роль: " +
+            escapeHtml(syncSession.household.role || "member") +
+            "<br/>URL: " +
+            escapeHtml(url);
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      async function afterAuth(tokens) {
+        saveSyncSession({
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          user: tokens.user,
+          household: null
+        });
+        try {
+          var me = await apiFetch("/api/auth/me");
+          if (me && me.household) {
+            syncSession.household = me.household;
+            saveSyncSession(syncSession);
+            queueLocalTimesForImport();
+            await flushSyncQueue();
+            await pullAllFeedings();
+            openSyncWs();
+          }
+        } catch (e) {}
+        updateSyncStatusUi();
+        showToast("Вход выполнен");
+      }
+
+      function initSyncUi() {
+        var serverInput = document.getElementById("sync-server-url");
+        if (serverInput) {
+          serverInput.value = loadSyncServerUrl();
+          var persistUrl = function () {
+            saveSyncServerUrl(serverInput.value);
+            updateSyncStatusUi();
+          };
+          serverInput.addEventListener("change", persistUrl);
+          serverInput.addEventListener("blur", persistUrl);
+        }
+
+        function authPayload() {
+          return {
+            email: (document.getElementById("sync-email") || {}).value || "",
+            password: (document.getElementById("sync-password") || {}).value || "",
+            displayName: (document.getElementById("sync-display-name") || {}).value || ""
+          };
+        }
+
+        var loginBtn = document.getElementById("sync-login-btn");
+        var registerBtn = document.getElementById("sync-register-btn");
+        if (loginBtn) {
+          loginBtn.addEventListener("click", async function () {
+            try {
+              saveSyncServerUrl((serverInput && serverInput.value) || "");
+              var p = authPayload();
+              var data = await apiFetch("/api/auth/login", {
+                method: "POST",
+                skipAuth: true,
+                body: { email: p.email, password: p.password }
+              });
+              await afterAuth(data);
+            } catch (e) {
+              showToast(e.message || "Ошибка входа");
+            }
+          });
+        }
+        if (registerBtn) {
+          registerBtn.addEventListener("click", async function () {
+            try {
+              saveSyncServerUrl((serverInput && serverInput.value) || "");
+              var p = authPayload();
+              var data = await apiFetch("/api/auth/register", {
+                method: "POST",
+                skipAuth: true,
+                body: {
+                  email: p.email,
+                  password: p.password,
+                  displayName: p.displayName || "Участник"
+                }
+              });
+              await afterAuth(data);
+            } catch (e) {
+              showToast(e.message || "Ошибка регистрации");
+            }
+          });
+        }
+
+        async function doLogout() {
+          try {
+            if (syncSession && syncSession.refreshToken) {
+              await apiFetch("/api/auth/logout", {
+                method: "POST",
+                skipAuth: true,
+                body: { refreshToken: syncSession.refreshToken }
+              });
+            }
+          } catch (e) {}
+          closeSyncWs();
+          saveSyncSession(null);
+          updateSyncStatusUi();
+          showToast("Вы вышли из аккаунта");
+        }
+
+        ["sync-logout-btn", "sync-logout-btn-2"].forEach(function (id) {
+          var btn = document.getElementById(id);
+          if (btn) btn.addEventListener("click", doLogout);
+        });
+
+        var createBtn = document.getElementById("sync-create-family-btn");
+        if (createBtn) {
+          createBtn.addEventListener("click", async function () {
+            try {
+              var name =
+                ((document.getElementById("sync-household-name") || {}).value || "").trim() ||
+                "Семья";
+              var data = await apiFetch("/api/households", {
+                method: "POST",
+                body: { name: name }
+              });
+              syncSession.household = data.household;
+              saveSyncSession(syncSession);
+              queueLocalTimesForImport();
+              await flushSyncQueue();
+              await pullAllFeedings();
+              openSyncWs();
+              updateSyncStatusUi();
+              showToast("Семья создана");
+            } catch (e) {
+              showToast(e.message || "Не удалось создать семью");
+            }
+          });
+        }
+
+        var joinBtn = document.getElementById("sync-join-family-btn");
+        if (joinBtn) {
+          joinBtn.addEventListener("click", async function () {
+            try {
+              var code = ((document.getElementById("sync-invite-code") || {}).value || "")
+                .trim()
+                .toUpperCase();
+              var data = await apiFetch("/api/households/join", {
+                method: "POST",
+                body: { inviteCode: code }
+              });
+              syncSession.household = data.household;
+              saveSyncSession(syncSession);
+              queueLocalTimesForImport();
+              await flushSyncQueue();
+              await pullAllFeedings();
+              openSyncWs();
+              updateSyncStatusUi();
+              showToast("Вы в семье");
+            } catch (e) {
+              showToast(e.message || "Не удалось вступить");
+            }
+          });
+        }
+
+        var leaveBtn = document.getElementById("sync-leave-btn");
+        if (leaveBtn) {
+          leaveBtn.addEventListener("click", async function () {
+            try {
+              await apiFetch("/api/households/leave", { method: "POST", body: {} });
+              closeSyncWs();
+              syncSession.household = null;
+              saveSyncSession(syncSession);
+              updateSyncStatusUi();
+              showToast("Вы покинули семью");
+            } catch (e) {
+              showToast(e.message || "Не удалось выйти из семьи");
+            }
+          });
+        }
+
+        var syncNowBtn = document.getElementById("sync-now-btn");
+        if (syncNowBtn) {
+          syncNowBtn.addEventListener("click", async function () {
+            try {
+              await flushSyncQueue();
+              await pullAllFeedings();
+              openSyncWs();
+              showToast("Синхронизация завершена");
+            } catch (e) {
+              showToast(e.message || "Синхронизация не удалась");
+            }
+          });
+        }
+
+        updateSyncStatusUi();
+        if (syncSession && syncSession.household) {
+          flushSyncQueue().catch(function () {});
+          pullAllFeedings().catch(function () {});
+          openSyncWs();
+        }
+        window.addEventListener("online", function () {
+          flushSyncQueue().catch(function () {});
+        });
       }
 
       buildMonthMenu();
