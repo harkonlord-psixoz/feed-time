@@ -2209,7 +2209,7 @@
       const PROFILE_KEY = "mur-calendar-profile";
       const LAST_FEED_AT_KEY = "mur-calendar-last-feed-at";
       const GITHUB_PAT_KEY = "mur-calendar-github-pat";
-      const APP_VERSION = "1.7.1";
+      const APP_VERSION = "1.7.2";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
@@ -4029,6 +4029,21 @@
         updateResultEl.innerHTML = html;
       }
 
+      /** Android WebView: open APK / release via native bridge (DownloadManager / browser). */
+      function openExternalUrl(url) {
+        if (!url || String(url).indexOf("http") !== 0) return false;
+        if (
+          typeof window.MurCalendarAndroid !== "undefined" &&
+          typeof window.MurCalendarAndroid.openUrl === "function"
+        ) {
+          try {
+            window.MurCalendarAndroid.openUrl(String(url));
+            return true;
+          } catch (e) {}
+        }
+        return false;
+      }
+
       function escapeHtml(str) {
         return String(str == null ? "" : str)
           .replace(/&/g, "&amp;")
@@ -4091,9 +4106,17 @@
           } else {
             statusLine = "У вас версия <strong>" + escapeHtml(current) + "</strong>, на GitHub latest — <strong>" + escapeHtml(latest) + "</strong>.";
           }
-          var links = '<a href="' + escapeHtml(releaseUrl) + '" target="_blank" rel="noopener noreferrer">Открыть релиз</a>';
+          var links =
+            '<a href="' +
+            escapeHtml(releaseUrl) +
+            '" target="_blank" rel="noopener noreferrer" data-external="1">Открыть релиз</a>';
           if (apk && apk.browser_download_url) {
-            links += ' · <a href="' + escapeHtml(apk.browser_download_url) + '" target="_blank" rel="noopener noreferrer">Скачать APK (' + escapeHtml(apk.name) + ")</a>";
+            links +=
+              ' · <a href="' +
+              escapeHtml(apk.browser_download_url) +
+              '" target="_blank" rel="noopener noreferrer" data-external="1">Скачать APK (' +
+              escapeHtml(apk.name) +
+              ")</a>";
           } else {
             links += '<span class="update-meta">APK-вложения в этом релизе нет — см. страницу релиза.</span>';
           }
@@ -4123,6 +4146,19 @@
           updateCheckBtn.addEventListener("click", function () {
             saveGithubPat(githubPatInput ? githubPatInput.value : "");
             checkForUpdates();
+          });
+        }
+        if (updateResultEl && !updateResultEl.dataset.externalBound) {
+          updateResultEl.dataset.externalBound = "1";
+          updateResultEl.addEventListener("click", function (e) {
+            var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+            if (!a) return;
+            var href = a.getAttribute("href");
+            if (!href || href.indexOf("http") !== 0) return;
+            if (openExternalUrl(href)) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
           });
         }
       }

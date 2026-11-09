@@ -78,6 +78,8 @@ Release: `./gradlew assembleRelease` + свой keystore (пока не наст
 
 После публикации «Проверить обновления» покажет tag, ссылку на релиз и прямую ссылку на APK.
 
+В Android WebView тап по «Скачать APK» идёт через мост `MurCalendarAndroid.openUrl` → `DownloadManager` (или внешний браузер), а не через внутреннюю загрузку WebView.
+
 Текущая версия приложения в коде: **1.7.0** (`web/index.html` → `APP_VERSION`, Android `versionName`).
 
 ---

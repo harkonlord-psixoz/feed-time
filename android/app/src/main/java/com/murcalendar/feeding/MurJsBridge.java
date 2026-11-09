@@ -49,4 +49,13 @@ public class MurJsBridge {
         FeedReminderScheduler.saveState(appContext, ms, reminderBody, hungryBody, morningBody);
         FeedReminderScheduler.rescheduleAll(appContext);
     }
+
+    /**
+     * Open https URL outside WebView: APK → DownloadManager (+ browser fallback),
+     * other links → ACTION_VIEW in external browser.
+     */
+    @JavascriptInterface
+    public void openUrl(String url) {
+        ExternalLinks.open(appContext, url);
+    }
 }
