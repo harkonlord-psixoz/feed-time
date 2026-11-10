@@ -8,13 +8,13 @@
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
-- **Версия:** `1.9.3` (versionCode **19**)
-- **Release:** https://github.com/harkonlord-psixoz/feed-time/releases/tag/v1.9.3
-- **APK download:** https://github.com/harkonlord-psixoz/feed-time/releases/download/v1.9.3/feed-time.apk
-- **Содержимое:** WebView + виджет + локальные/семейные уведомления; кнопка **«Отменить последнее»**; повторное кормление снова шлёт оповещение
+- **Версия:** `1.9.4` (versionCode **20**)
+- **Release:** https://github.com/harkonlord-psixoz/feed-time/releases/tag/v1.9.4
+- **APK download:** https://github.com/harkonlord-psixoz/feed-time/releases/download/v1.9.4/feed-time.apk
+- **Содержимое:** WebView + виджет + уведомления; **будильник-пикер времени** (барабаны час/мин, без клавиатуры); «Отменить последнее»
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html`
 - **Keystore SHA-256:** `FA:B5:C4:F7:7D:4B:51:7F:C4:ED:A0:BB:70:46:F9:F0:FD:0B:6B:25:78:E9:84:0F:59:9F:92:CC:1B:3C:27:19`
-- **Последнее изменение клиента:** CF-36 — отмена кормления + renotify (1.9.3).
+- **Последнее изменение клиента:** CF-36 — alarm-style time picker (1.9.4).
 
 ## Семейный синк на VPS (CF-28–34)
 
