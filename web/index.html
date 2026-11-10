@@ -2349,7 +2349,7 @@
       const SYNC_CLIENT_IDS_KEY = "mur-calendar-sync-client-ids";
       const PROFILE_UPDATED_AT_KEY = "mur-calendar-profile-updated-at";
       const SYNC_DEVICE_ID_KEY = "mur-calendar-sync-device-id";
-      const APP_VERSION = "1.9.1";
+      const APP_VERSION = "1.9.2";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Default API for browser/APK when localStorage empty; meta allows host-specific override.
@@ -4378,6 +4378,9 @@
       var profileSyncTimer = null;
       var profileSyncing = false;
       var profileApplyingRemote = false;
+      /* clientIds originated on THIS device — skip family_feed echo here only.
+         Same account on phone+browser must still notify the other device. */
+      var ownFeedClientIds = {};
 
       function uuid4() {
         if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -4706,6 +4709,7 @@
         if (!syncSession || !syncSession.household) return;
         var clientId = clientIdForSlot(dayDate, slotIndex);
         var updatedAt = new Date().toISOString();
+        ownFeedClientIds[clientId] = Date.now();
         var item = {
           dayDate: dayDate,
           slotIndex: slotIndex,
@@ -4876,12 +4880,16 @@
       }
 
       function handleFamilyFeedMessage(msg) {
-        var myId = syncSession && syncSession.user && syncSession.user.id;
-        if (msg.actorUserId && myId && String(msg.actorUserId) === String(myId)) {
+        /* Do NOT skip by actorUserId: one login on web + APK is normal.
+           Skip only feedings this device itself enqueued (local notifyJustFed already fired). */
+        var feeding = msg.feeding || {};
+        var cid = feeding.clientId ? String(feeding.clientId) : "";
+        if (cid && ownFeedClientIds[cid]) {
           return;
         }
         var dedupe =
-          (msg.feeding && (msg.feeding.id || msg.feeding.clientId)) ||
+          feeding.id ||
+          feeding.clientId ||
           (msg.body || "") + "|" + (msg.actorName || "");
         notifyFamilyFed(msg.body || "", dedupe);
       }
