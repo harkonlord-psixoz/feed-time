@@ -1567,6 +1567,39 @@
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 70%, transparent);
     }
 
+    .feed-undo-btn {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.55rem 1rem;
+      border-radius: 14px;
+      border: 1.5px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+      background: color-mix(in srgb, var(--paper) 88%, var(--accent-soft));
+      color: var(--ink-soft);
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .feed-undo-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      color: var(--accent-deep);
+    }
+
+    .feed-undo-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .feed-undo-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 70%, transparent);
+    }
+
     .toast {
       position: fixed;
       left: 50%;
@@ -1932,8 +1965,10 @@
       width: 100%;
       justify-content: space-between;
     }
-    html[data-shell="android"] .feed-btn {
+    html[data-shell="android"] .feed-btn,
+    html[data-shell="android"] .feed-undo-btn {
       width: 100%;
+      max-width: min(100%, 16rem);
     }
     html[data-shell="android"] .last-feed {
       text-align: center;
@@ -1952,7 +1987,8 @@
       .hero-tools { margin-left: 0; width: 100%; justify-content: space-between; }
       .live-clock { flex: 1; text-align: center; }
       .brand-row { gap: 0.65rem; }
-      .feed-btn { width: 100%; }
+      .feed-btn,
+      .feed-undo-btn { width: 100%; max-width: min(100%, 16rem); }
       .last-feed { text-align: center; max-width: none; width: 100%; }
       .day.is-today .day-body { grid-template-rows: auto minmax(3.6rem, 1fr); }
       .today-sticker svg { width: min(48%, 108px); }
@@ -2111,6 +2147,7 @@
     <div class="app-view" id="view-home" data-view="home">
       <div class="feed-bar">
         <button type="button" class="feed-btn" id="feed-btn" title="Записать текущее время в следующий пустой слот сегодня">Покормил</button>
+        <button type="button" class="feed-undo-btn" id="feed-undo-btn" title="Очистить последнее кормление за сегодня" disabled>Отменить последнее</button>
         <p class="last-feed is-empty" id="last-feed" aria-live="polite">ещё не кормили</p>
       </div>
 
@@ -2349,7 +2386,7 @@
       const SYNC_CLIENT_IDS_KEY = "mur-calendar-sync-client-ids";
       const PROFILE_UPDATED_AT_KEY = "mur-calendar-profile-updated-at";
       const SYNC_DEVICE_ID_KEY = "mur-calendar-sync-device-id";
-      const APP_VERSION = "1.9.2";
+      const APP_VERSION = "1.9.3";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Default API for browser/APK when localStorage empty; meta allows host-specific override.
@@ -2395,6 +2432,7 @@
       const themeBar = document.querySelector(".theme-bar");
       const periodBar = document.querySelector(".period-bar");
       const feedBtn = document.getElementById("feed-btn");
+      const feedUndoBtn = document.getElementById("feed-undo-btn");
       const appVersionLabel = document.getElementById("app-version-label");
       const githubPatInput = document.getElementById("github-pat-input");
       const updateCheckBtn = document.getElementById("update-check-btn");
@@ -2923,7 +2961,15 @@
         return "";
       }
 
+      function updateFeedUndoButton() {
+        if (!feedUndoBtn) return;
+        var has = !!getLastFedToday();
+        feedUndoBtn.disabled = !has;
+        feedUndoBtn.setAttribute("aria-disabled", has ? "false" : "true");
+      }
+
       function updateLastFeedLabel() {
+        updateFeedUndoButton();
         if (!lastFeedEl) return;
         var time = getLastFedToday();
         if (time) {
@@ -3193,7 +3239,38 @@
         syncFeedNotifications();
       }
 
+      /** Clear the latest filled slot today (wrong tap / redo). Syncs empty + allows renotify. */
+      function undoLastFeedToday() {
+        var t = new Date();
+        var y = t.getFullYear();
+        var m = t.getMonth();
+        var d = t.getDate();
+        var slotIndex = -1;
+        var prev = "";
+        for (var s = slotCount - 1; s >= 0; s--) {
+          var v = getSlotValue(y, m, d, s);
+          if (v) {
+            slotIndex = s;
+            prev = v;
+            break;
+          }
+        }
+        if (slotIndex < 0) {
+          showToast("Нечего отменять — сегодня ещё не кормили");
+          return;
+        }
+        if (viewYear !== y || viewMonth !== m) {
+          setView(y, m);
+        }
+        setSlotValue(y, m, d, slotIndex, "");
+        renderMonth();
+        requestAnimationFrame(scrollTodayIntoView);
+        showToast("Отменено кормление " + (slotIndex + 1) + (prev ? " (" + prev + ")" : ""));
+        syncFeedNotifications();
+      }
+
       feedBtn.addEventListener("click", feedCatsNow);
+      if (feedUndoBtn) feedUndoBtn.addEventListener("click", undoLastFeedToday);
 
       /* ——— Clock + greeting ——— */
       function periodOfDay(hours) {
@@ -4094,7 +4171,8 @@
             return;
           }
         } catch (e) {}
-        webNotify("Feed Time", body, "mur-just-fed");
+        /* Unique tag so undo → feed again can alert again in the browser. */
+        webNotify("Feed Time", body, "mur-just-fed-" + Date.now());
         showToast(body);
       }
 
@@ -4111,7 +4189,11 @@
             return;
           }
         } catch (e) {}
-        webNotify("Feed Time · семья", text, "mur-family-fed");
+        webNotify(
+          "Feed Time · семья",
+          text,
+          "mur-family-fed-" + String(dedupeKey || Date.now()).replace(/[^\w.-]+/g, "_").slice(0, 80)
+        );
         showToast(text);
       }
 
@@ -4704,12 +4786,26 @@
         }
       }
 
+      function forgetFeedNotifDedupe(clientId) {
+        if (!clientId) return;
+        delete ownFeedClientIds[clientId];
+        if (!window.__murFamilyNotifSeen) return;
+        Object.keys(window.__murFamilyNotifSeen).forEach(function (k) {
+          if (String(k).indexOf(String(clientId)) >= 0) {
+            delete window.__murFamilyNotifSeen[k];
+          }
+        });
+      }
+
       function enqueueFeedingSync(dayDate, slotIndex, time) {
         if (syncApplyingRemote) return;
         if (!syncSession || !syncSession.household) return;
         var clientId = clientIdForSlot(dayDate, slotIndex);
         var updatedAt = new Date().toISOString();
-        ownFeedClientIds[clientId] = Date.now();
+        var cleared = !String(time || "").trim();
+        if (!cleared) {
+          ownFeedClientIds[clientId] = Date.now();
+        }
         var item = {
           dayDate: dayDate,
           slotIndex: slotIndex,
@@ -4722,6 +4818,13 @@
         });
         syncQueue.push(item);
         saveSyncQueue();
+        if (cleared) {
+          /* Cancel: forget dedupe + mint new clientId so a re-feed can notify again. */
+          forgetFeedNotifDedupe(clientId);
+          var mapKey = dayDate + "|" + slotIndex;
+          delete syncClientIds[mapKey];
+          saveSyncClientIds();
+        }
         scheduleSyncFlush();
       }
 
@@ -4887,10 +4990,13 @@
         if (cid && ownFeedClientIds[cid]) {
           return;
         }
+        /* Include updatedAt/time so undo → feed again is a new alert, not a silent dedupe. */
         var dedupe =
-          feeding.id ||
-          feeding.clientId ||
-          (msg.body || "") + "|" + (msg.actorName || "");
+          String(feeding.id || feeding.clientId || "") +
+          "|" +
+          String(feeding.updatedAt || "") +
+          "|" +
+          String(feeding.time || msg.body || "");
         notifyFamilyFed(msg.body || "", dedupe);
       }
 
