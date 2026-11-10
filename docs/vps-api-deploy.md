@@ -315,22 +315,22 @@ npm run dev
 
 | Что | URL (пример на VPS HarkonLord) | Кто открывает |
 |-----|--------------------------------|---------------|
-| **Веб-UI** (статический `web/`) | `https://app.harkonlord.su` | люди **без APK** в браузере |
-| **API** (Node на :3080 за nginx) | `https://api.harkonlord.su` | приложение / веб-UI в настройках синка |
+| **Веб-UI** (статический `web/`) | `http://app.harkonlord.su` (**сейчас**); после §14 — `https://app…` | люди **без APK** в браузере |
+| **API** (Node на :3080 за nginx) | `http://api.harkonlord.su` (**сейчас**); после §14 — `https://api…` | приложение / веб-UI в настройках синка |
 
 Сайт и API — **разные** origin’ы. В UI поле «URL сервера» — это **только API**, не адрес страницы календаря.
 
-Целевое состояние после §14 (HTTPS):
+**Сейчас (до §14):** 443 занят Xray / чужим сертификатом — клиенты должны ходить на **HTTP**:
 
-- Дефолт в `web/index.html`: meta `feed-time-default-api` = `https://api.harkonlord.su` (если в `localStorage` ещё нет своего URL).
-- Уже сохранённый в браузере/APK `http://…` **не** перезаписывается автоматически — в Настройках смените на `https://api.harkonlord.su` или очистите ключ URL API.
-- Cleartext HTTP в Android по-прежнему разрешён (LAN / IP:3080), но прод — HTTPS.
+- Дефолт в `web/index.html`: meta `feed-time-default-api` = `http://api.harkonlord.su`.
+- Клиент **принудительно** лечит сохранённый `https://api.harkonlord.su` → `http://…` (временный костыль после преждевременного дефолта PR #10; убрать, когда `/api/health` по HTTPS станет OK).
+- UI открывать как `http://app.harkonlord.su`. На `https://app.harkonlord.su` сейчас отдаётся **другой** сайт (placeholder Frames), не Feed Time.
 
-Пока HTTPS ещё не включён на VPS (шаги §14 не сделаны), временно оставляйте HTTP на `:80`; после сертификатов и `listen 443` — только HTTPS.
+**После §14 (HTTPS жив):** сменить дефолт meta/JS на `https://api…`, убрать coerce `https→http`, в настройках указать HTTPS.
 
 В приложении / на сайте → **Настройки → Сервер и семья**:
 
-1. URL API (`https://api.harkonlord.su` по умолчанию; или свой `http://IP:3080` / другой HTTPS-домен)
+1. URL API (`http://api.harkonlord.su` по умолчанию; или свой `http://IP:3080`)
 2. Регистрация / вход
 3. Создать семью или ввести invite-код
 4. Календарь синкается (офлайн-очередь + `localStorage`); тема и прочие `mur-calendar-*` ключи остаются локальными

@@ -10,8 +10,8 @@ android {
         applicationId "com.murcalendar.feeding"
         minSdk 24
         targetSdk 34
-        versionCode 16
-        versionName "1.9.0"
+        versionCode 17
+        versionName "1.9.1"
     }
 
     // Stable shared debug keystore (committed under android/).

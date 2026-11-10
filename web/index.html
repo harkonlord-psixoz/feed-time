@@ -13,8 +13,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <!-- Default family-sync API (override via localStorage or this meta when hosting). Prefer HTTPS; see docs/vps-api-deploy.md §14. -->
-  <meta name="feed-time-default-api" content="https://api.harkonlord.su" />
+  <!-- Default family-sync API (override via localStorage or this meta when hosting). HTTP until TLS for api.* is live (443 still Xray); see docs/vps-api-deploy.md §14. -->
+  <meta name="feed-time-default-api" content="http://api.harkonlord.su" />
   <title>Feed Time · Кормление</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -2178,11 +2178,11 @@
                   autocomplete="url"
                   spellcheck="false"
                   maxlength="256"
-                  placeholder="https://api.harkonlord.su"
+                  placeholder="http://api.harkonlord.su"
                   aria-describedby="sync-server-hint"
                 />
                 <p class="settings-hint" id="sync-server-hint">
-                  Отдельный API (не URL сайта). По умолчанию https://api.harkonlord.su. Без слэша в конце. Тема и ключи mur-calendar-* остаются на устройстве.
+                  Отдельный API (не URL сайта). Сейчас только <strong>http://api.harkonlord.su</strong> (HTTPS ещё не включён). Не путать с URL сайта app.harkonlord.su. Без слэша в конце.
                 </p>
               </div>
 
@@ -2349,10 +2349,11 @@
       const SYNC_CLIENT_IDS_KEY = "mur-calendar-sync-client-ids";
       const PROFILE_UPDATED_AT_KEY = "mur-calendar-profile-updated-at";
       const SYNC_DEVICE_ID_KEY = "mur-calendar-sync-device-id";
-      const APP_VERSION = "1.9.0";
+      const APP_VERSION = "1.9.1";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
-      /* Default API for browser/APK when localStorage empty; meta allows host-specific override. */
+      /* Default API for browser/APK when localStorage empty; meta allows host-specific override.
+         Keep HTTP until https://api.harkonlord.su/api/health works (CF-35 / §14). */
       const DEFAULT_SYNC_SERVER = (function () {
         try {
           var meta = document.querySelector('meta[name="feed-time-default-api"]');
@@ -2361,8 +2362,11 @@
             return String(fromMeta).trim().replace(/\/+$/, "");
           }
         } catch (e) {}
-        return "https://api.harkonlord.su";
+        return "http://api.harkonlord.su";
       })();
+      /* Premature https:// default (PR #10) breaks clients while 443 is not API TLS. */
+      const BROKEN_HTTPS_API = "https://api.harkonlord.su";
+      const WORKING_HTTP_API = "http://api.harkonlord.su";
       /* Просмотр месяца НЕ сохраняем: при каждой загрузке — текущий месяц/год. */
 
       const now = new Date();
@@ -4386,20 +4390,39 @@
         });
       }
 
+      function coerceWorkingApiUrl(url) {
+        var u = String(url || "").trim().replace(/\/+$/, "");
+        /* TEMP: api TLS not live yet — heal poisoned https default from PR #10.
+           Remove this branch when https://api.harkonlord.su/api/health is OK. */
+        if (u === BROKEN_HTTPS_API) return WORKING_HTTP_API;
+        return u;
+      }
+
+      function migrateSyncServerUrlIfNeeded() {
+        try {
+          var raw = localStorage.getItem(SYNC_SERVER_KEY);
+          if (raw === null || raw === undefined) return;
+          var coerced = coerceWorkingApiUrl(raw);
+          if (coerced !== String(raw || "").trim().replace(/\/+$/, "")) {
+            localStorage.setItem(SYNC_SERVER_KEY, coerced);
+          }
+        } catch (e) {}
+      }
+
       function loadSyncServerUrl() {
         try {
           var raw = localStorage.getItem(SYNC_SERVER_KEY);
           /* Explicit empty string means user cleared the field (offline). Missing key → default. */
-          if (raw === null || raw === undefined) return DEFAULT_SYNC_SERVER;
-          return String(raw || "").trim().replace(/\/+$/, "");
+          if (raw === null || raw === undefined) return coerceWorkingApiUrl(DEFAULT_SYNC_SERVER);
+          return coerceWorkingApiUrl(raw);
         } catch (e) {
-          return DEFAULT_SYNC_SERVER;
+          return coerceWorkingApiUrl(DEFAULT_SYNC_SERVER);
         }
       }
 
       function saveSyncServerUrl(url) {
         try {
-          localStorage.setItem(SYNC_SERVER_KEY, String(url || "").trim().replace(/\/+$/, ""));
+          localStorage.setItem(SYNC_SERVER_KEY, coerceWorkingApiUrl(url));
         } catch (e) {}
       }
 
@@ -4872,7 +4895,7 @@
         var url = loadSyncServerUrl();
         if (statusEl) {
           if (!url) {
-            statusEl.innerHTML = "Офлайн на устройстве. Укажите URL API (например https://api.harkonlord.su).";
+            statusEl.innerHTML = "Офлайн на устройстве. Укажите URL API (например http://api.harkonlord.su).";
           } else if (!syncSession) {
             statusEl.innerHTML = "API: <strong>" + escapeHtml(url) + "</strong> — войдите или зарегистрируйтесь.";
           } else if (!syncSession.household) {
@@ -4941,11 +4964,13 @@
       }
 
       function initSyncUi() {
+        migrateSyncServerUrlIfNeeded();
         var serverInput = document.getElementById("sync-server-url");
         if (serverInput) {
           serverInput.value = loadSyncServerUrl();
           var persistUrl = function () {
             saveSyncServerUrl(serverInput.value);
+            serverInput.value = loadSyncServerUrl();
             updateSyncStatusUi();
           };
           serverInput.addEventListener("change", persistUrl);

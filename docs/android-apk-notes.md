@@ -1,4 +1,4 @@
-# Feed Time — Android APK (v1.9.0)
+# Feed Time — Android APK (v1.9.1)
 
 ## Что собрано
 
@@ -8,14 +8,15 @@
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
-- **Версия:** `1.9.0` (versionCode **16**)
+- **Версия (исходники):** `1.9.1` (versionCode **17**) — HTML: дефолт API снова `http://api.harkonlord.su` + heal `https→http` пока TLS api не жив
+- **Последний опубликованный APK в releases/:** может быть ещё `1.9.0` (code 16), пока не пересобран Release
 - **Содержимое:** WebView + виджет + локальные уведомления + **синк профиля питомцев** + **семейные оповещения** (WS → `notifyFamilyFed`)
-- **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
-- **Последняя пересборка:** CF-33/34 — household profile LWW + family_feed, Release v1.9.0, keystore `mur-calendar-debug.keystore`.
+- **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html`
+- **Последнее изменение клиента:** CF-36 — откат преждевременного HTTPS-дефолта (PR #10) до включения §14.
 
 ## Семейный синк на VPS (CF-28–34)
 
-1. В **Настройки → Сервер и семья**: URL API (по умолчанию `https://api.harkonlord.su`), регистрация/вход, создать/вступить в семью по коду.
+1. В **Настройки → Сервер и семья**: URL API (по умолчанию `http://api.harkonlord.su` — HTTPS для api ещё не включён), регистрация/вход, создать/вступить в семью по коду.
 2. **Профиль питомцев** (число / вид / клички) синкается в семью (LWW); при create/join мигрирует из `mur-calendar-profile`.
 3. **Кормление на одном устройстве** → WS `family_feed` → локальный пуш на других (пока APK/вкладка живы). Фон: опциональный FCM (`FCM_SERVER_KEY` + `fcmToken` в `/api/devices/register`) — см. `family-sync-and-notifications.md`.
 4. Бэкенд: `server/` + миграция `002_household_profile_devices.sql`.
