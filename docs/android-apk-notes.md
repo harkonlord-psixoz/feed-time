@@ -8,11 +8,13 @@
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
-- **Версия (исходники):** `1.9.1` (versionCode **17**) — HTML: дефолт API снова `http://api.harkonlord.su` + heal `https→http` пока TLS api не жив
-- **Последний опубликованный APK в releases/:** может быть ещё `1.9.0` (code 16), пока не пересобран Release
-- **Содержимое:** WebView + виджет + локальные уведомления + **синк профиля питомцев** + **семейные оповещения** (WS → `notifyFamilyFed`)
+- **Версия:** `1.9.1` (versionCode **17**)
+- **Release:** https://github.com/harkonlord-psixoz/feed-time/releases/tag/v1.9.1
+- **APK download:** https://github.com/harkonlord-psixoz/feed-time/releases/download/v1.9.1/feed-time.apk
+- **Содержимое:** WebView + виджет + локальные уведомления + синк профиля + семейные оповещения; дефолт API снова `http://api.harkonlord.su` + heal `https→http` пока TLS api не жив
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html`
-- **Последнее изменение клиента:** CF-36 — откат преждевременного HTTPS-дефолта (PR #10) до включения §14.
+- **Keystore SHA-256:** `FA:B5:C4:F7:7D:4B:51:7F:C4:ED:A0:BB:70:46:F9:F0:FD:0B:6B:25:78:E9:84:0F:59:9F:92:CC:1B:3C:27:19`
+- **Последнее изменение клиента:** CF-36 — откат преждевременного HTTPS-дефолта (PR #10) до включения §14; опубликован Release v1.9.1.
 
 ## Семейный синк на VPS (CF-28–34)
 
