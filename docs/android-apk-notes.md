@@ -1,4 +1,4 @@
-# Feed Time — Android APK (v1.9.0)
+# Feed Time — Android APK (v1.9.1)
 
 ## Что собрано
 
@@ -8,14 +8,17 @@
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
-- **Версия:** `1.9.0` (versionCode **16**)
-- **Содержимое:** WebView + виджет + локальные уведомления + **синк профиля питомцев** + **семейные оповещения** (WS → `notifyFamilyFed`)
-- **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html` / store `docs/cat-feeding-calendar.html`
-- **Последняя пересборка:** CF-33/34 — household profile LWW + family_feed, Release v1.9.0, keystore `mur-calendar-debug.keystore`.
+- **Версия:** `1.9.1` (versionCode **17**)
+- **Release:** https://github.com/harkonlord-psixoz/feed-time/releases/tag/v1.9.1
+- **APK download:** https://github.com/harkonlord-psixoz/feed-time/releases/download/v1.9.1/feed-time.apk
+- **Содержимое:** WebView + виджет + локальные уведомления + синк профиля + семейные оповещения; дефолт API снова `http://api.harkonlord.su` + heal `https→http` пока TLS api не жив
+- **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html`
+- **Keystore SHA-256:** `FA:B5:C4:F7:7D:4B:51:7F:C4:ED:A0:BB:70:46:F9:F0:FD:0B:6B:25:78:E9:84:0F:59:9F:92:CC:1B:3C:27:19`
+- **Последнее изменение клиента:** CF-36 — откат преждевременного HTTPS-дефолта (PR #10) до включения §14; опубликован Release v1.9.1.
 
 ## Семейный синк на VPS (CF-28–34)
 
-1. В **Настройки → Сервер и семья**: URL API (по умолчанию `https://api.harkonlord.su`), регистрация/вход, создать/вступить в семью по коду.
+1. В **Настройки → Сервер и семья**: URL API (по умолчанию `http://api.harkonlord.su` — HTTPS для api ещё не включён), регистрация/вход, создать/вступить в семью по коду.
 2. **Профиль питомцев** (число / вид / клички) синкается в семью (LWW); при create/join мигрирует из `mur-calendar-profile`.
 3. **Кормление на одном устройстве** → WS `family_feed` → локальный пуш на других (пока APK/вкладка живы). Фон: опциональный FCM (`FCM_SERVER_KEY` + `fcmToken` в `/api/devices/register`) — см. `family-sync-and-notifications.md`.
 4. Бэкенд: `server/` + миграция `002_household_profile_devices.sql`.
