@@ -226,6 +226,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         FeedingAppWidget.requestUpdate(this);
+        /* Reschedule future alarms only; past-due windows are cancelled (no now+5s re-fire). */
         FeedReminderScheduler.rescheduleAll(this);
     }
 

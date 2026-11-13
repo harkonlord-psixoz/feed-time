@@ -2625,7 +2625,8 @@
       const SYNC_CLIENT_IDS_KEY = "mur-calendar-sync-client-ids";
       const PROFILE_UPDATED_AT_KEY = "mur-calendar-profile-updated-at";
       const SYNC_DEVICE_ID_KEY = "mur-calendar-sync-device-id";
-      const APP_VERSION = "1.9.4";
+      const FAMILY_NOTIF_SEEN_KEY = "mur-calendar-family-notif-seen";
+      const APP_VERSION = "1.9.5";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Default API for browser/APK when localStorage empty; meta allows host-specific override.
@@ -4522,6 +4523,42 @@
         } catch (e) {}
       }
 
+      function loadFamilyNotifSeen() {
+        try {
+          var raw = localStorage.getItem(FAMILY_NOTIF_SEEN_KEY);
+          var parsed = raw ? JSON.parse(raw) : {};
+          return parsed && typeof parsed === "object" ? parsed : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function saveFamilyNotifSeen(map) {
+        try {
+          var nowMs = Date.now();
+          var cleaned = {};
+          Object.keys(map || {}).forEach(function (k) {
+            var ts = map[k];
+            if (typeof ts === "number" && nowMs - ts < 7 * 864e5) cleaned[k] = ts;
+          });
+          localStorage.setItem(FAMILY_NOTIF_SEEN_KEY, JSON.stringify(cleaned));
+          window.__murFamilyNotifSeen = cleaned;
+        } catch (e) {}
+      }
+
+      function markFamilyNotifSeen(dedupeKey) {
+        if (!dedupeKey) return;
+        var seen = window.__murFamilyNotifSeen || loadFamilyNotifSeen();
+        seen[dedupeKey] = Date.now();
+        saveFamilyNotifSeen(seen);
+      }
+
+      function wasFamilyNotifSeen(dedupeKey) {
+        if (!dedupeKey) return false;
+        if (!window.__murFamilyNotifSeen) window.__murFamilyNotifSeen = loadFamilyNotifSeen();
+        return !!window.__murFamilyNotifSeen[dedupeKey];
+      }
+
       function notifyJustFed() {
         var body = notifJustFedBody();
         try {
@@ -4530,18 +4567,15 @@
             return;
           }
         } catch (e) {}
-        /* Unique tag so undo → feed again can alert again in the browser. */
-        webNotify("Feed Time", body, "mur-just-fed-" + Date.now());
+        /* Stable tag — replace previous just-fed, don't stack. */
+        webNotify("Feed Time", body, "mur-just-fed");
         showToast(body);
       }
 
       function notifyFamilyFed(body, dedupeKey) {
         var text = body || "В семье отметили кормление";
-        if (dedupeKey) {
-          if (!window.__murFamilyNotifSeen) window.__murFamilyNotifSeen = {};
-          if (window.__murFamilyNotifSeen[dedupeKey]) return;
-          window.__murFamilyNotifSeen[dedupeKey] = Date.now();
-        }
+        if (dedupeKey && wasFamilyNotifSeen(dedupeKey)) return;
+        if (dedupeKey) markFamilyNotifSeen(dedupeKey);
         try {
           if (window.MurCalendarAndroid && typeof window.MurCalendarAndroid.notifyFamilyFed === "function") {
             window.MurCalendarAndroid.notifyFamilyFed(text);
@@ -4551,7 +4585,7 @@
         webNotify(
           "Feed Time · семья",
           text,
-          "mur-family-fed-" + String(dedupeKey || Date.now()).replace(/[^\w.-]+/g, "_").slice(0, 80)
+          "mur-family-fed-" + String(dedupeKey || "latest").replace(/[^\w.-]+/g, "_").slice(0, 80)
         );
         showToast(text);
       }
@@ -4580,7 +4614,8 @@
           window.__murFeedTimers = [];
           ensureWebNotificationPermission();
           function scheduleWeb(delayMs, title, tag) {
-            if (delayMs < 0) delayMs = 0;
+            /* Missed windows: skip (don't fire immediately on every page open). */
+            if (!(delayMs > 1000)) return;
             var id = setTimeout(function () {
               webNotify("Feed Time", title, tag);
             }, delayMs);
@@ -5148,12 +5183,15 @@
       function forgetFeedNotifDedupe(clientId) {
         if (!clientId) return;
         delete ownFeedClientIds[clientId];
-        if (!window.__murFamilyNotifSeen) return;
-        Object.keys(window.__murFamilyNotifSeen).forEach(function (k) {
+        var seen = window.__murFamilyNotifSeen || loadFamilyNotifSeen();
+        var changed = false;
+        Object.keys(seen).forEach(function (k) {
           if (String(k).indexOf(String(clientId)) >= 0) {
-            delete window.__murFamilyNotifSeen[k];
+            delete seen[k];
+            changed = true;
           }
         });
+        if (changed) saveFamilyNotifSeen(seen);
       }
 
       function enqueueFeedingSync(dayDate, slotIndex, time) {
