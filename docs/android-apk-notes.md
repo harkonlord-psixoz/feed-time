@@ -8,13 +8,13 @@
 - **Тип:** debug APK (стабильный общий debug-keystore в репозитории, можно ставить sideload)
 - **Package:** `com.murcalendar.feeding`
 - **Имя приложения:** Feed Time
-- **Версия:** `1.9.5` (versionCode **21**)
-- **Release:** https://github.com/harkonlord-psixoz/feed-time/releases/tag/v1.9.5
-- **APK download:** https://github.com/harkonlord-psixoz/feed-time/releases/download/v1.9.5/feed-time.apk
-- **Содержимое:** WebView + виджет + уведомления; будильник-пикер; без дублей при open/close (1.9.5)
+- **Версия:** `1.9.6` (versionCode **22**)
+- **Release:** (после merge) `v1.9.6`
+- **APK download:** (после release)
+- **Содержимое:** WebView + виджет + уведомления; число слотов 3/4/5 — в Профиле (1.9.6)
 - **Содержимое HTML:** `assets/index.html` байт-в-байт с `web/index.html`
 - **Keystore SHA-256:** `FA:B5:C4:F7:7D:4B:51:7F:C4:ED:A0:BB:70:46:F9:F0:FD:0B:6B:25:78:E9:84:0F:59:9F:92:CC:1B:3C:27:19`
-- **Последнее изменение клиента:** CF-36 — dedupe notifications on resume (1.9.5).
+- **Последнее изменение клиента:** CF-42 — слоты кормлений перенесены в Профиль (1.9.6).
 
 ## Семейный синк на VPS (CF-28–34)
 

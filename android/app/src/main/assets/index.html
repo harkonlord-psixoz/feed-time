@@ -850,6 +850,12 @@
       gap: 0.4rem;
     }
 
+    .slot-count-profile .slot-count-label {
+      margin-left: 0.35rem;
+      font-size: 0.92rem;
+      color: var(--ink-soft);
+    }
+
     .pet-count-btn {
       appearance: none;
       min-width: 2.4rem;
@@ -2380,6 +2386,11 @@
         </div>
         <div class="profile-form">
           <div class="field">
+            <label id="slot-count-label">Кормлений в день</label>
+            <p class="settings-hint" id="slot-count-hint">Здесь можно выбрать количество кормлений в день.</p>
+            <div class="pet-count-control slot-count-profile" id="slot-count-control" role="group" aria-labelledby="slot-count-label" aria-describedby="slot-count-hint"></div>
+          </div>
+          <div class="field">
             <label id="pet-count-label">Сколько питомцев</label>
             <div class="pet-count-control" id="pet-count-control" role="group" aria-labelledby="pet-count-label"></div>
           </div>
@@ -2394,7 +2405,7 @@
     <div class="app-view" id="view-settings" data-view="settings" hidden>
       <section class="panel-card" aria-labelledby="settings-title">
         <h2 id="settings-title">Настройки</h2>
-        <p>Палитра и оповещения — здесь; светлая/тёмная — в боковом меню; слоты — на главной.</p>
+        <p>Палитра и оповещения — здесь; светлая/тёмная — в боковом меню; число кормлений в день — в Профиле.</p>
         <p class="settings-version">Версия приложения: <strong id="app-version-label">—</strong></p>
 
         <div class="settings-form">
@@ -2626,7 +2637,7 @@
       const PROFILE_UPDATED_AT_KEY = "mur-calendar-profile-updated-at";
       const SYNC_DEVICE_ID_KEY = "mur-calendar-sync-device-id";
       const FAMILY_NOTIF_SEEN_KEY = "mur-calendar-family-notif-seen";
-      const APP_VERSION = "1.9.5";
+      const APP_VERSION = "1.9.6";
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Default API for browser/APK when localStorage empty; meta allows host-specific override.
@@ -2681,6 +2692,7 @@
       const toastEl = document.getElementById("toast");
       const profileSummaryName = document.getElementById("profile-summary-name");
       const profileSummaryMeta = document.getElementById("profile-summary-meta");
+      const slotCountControl = document.getElementById("slot-count-control");
       const petCountControl = document.getElementById("pet-count-control");
       const petNamesList = document.getElementById("pet-names-list");
       const openPetSpeciesMenus = [];
@@ -3432,8 +3444,14 @@
 
       function setSlotCount(n) {
         n = parseInt(n, 10);
-        if (n !== 3 && n !== 4 && n !== 5) return;
-        if (n === slotCount) return;
+        if (n !== 3 && n !== 4 && n !== 5) {
+          renderSlotCountControl();
+          return;
+        }
+        if (n === slotCount) {
+          renderSlotCountControl();
+          return;
+        }
         slotCount = n;
         /* Migrate stored day arrays to new length (keep times, pad/trim). */
         Object.keys(timesStore).forEach(function (key) {
@@ -3447,7 +3465,29 @@
         saveSlotCount();
         saveTimes();
         updateLastFeedLabel();
+        renderSlotCountControl();
         renderMonth();
+      }
+
+      function renderSlotCountControl() {
+        if (!slotCountControl) return;
+        slotCountControl.innerHTML = "";
+        [3, 4, 5].forEach(function (n) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "pet-count-btn" + (n === slotCount ? " is-active" : "");
+          btn.textContent = String(n);
+          btn.setAttribute("aria-pressed", n === slotCount ? "true" : "false");
+          btn.title = n + " " + slotWord(n) + " в день";
+          btn.addEventListener("click", function () {
+            setSlotCount(n);
+          });
+          slotCountControl.appendChild(btn);
+        });
+        var hint = document.createElement("span");
+        hint.className = "slot-count-label";
+        hint.textContent = slotWord(slotCount) + " в день";
+        slotCountControl.appendChild(hint);
       }
 
       function feedCatsNow() {
@@ -4186,30 +4226,7 @@
 
         var meta = document.createElement("span");
         meta.className = "month-meta";
-        meta.appendChild(document.createTextNode(daysCount + " дн." + febNote + " · "));
-
-        var slotCtrl = document.createElement("span");
-        slotCtrl.className = "slot-count-control";
-        slotCtrl.setAttribute("role", "group");
-        slotCtrl.setAttribute("aria-label", "Число кормлений в день");
-
-        [3, 4, 5].forEach(function (n) {
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "slot-count-btn" + (n === slotCount ? " is-active" : "");
-          btn.textContent = String(n);
-          btn.setAttribute("aria-pressed", n === slotCount ? "true" : "false");
-          btn.title = n + " " + slotWord(n) + " в день";
-          btn.addEventListener("click", function () {
-            setSlotCount(n);
-          });
-          slotCtrl.appendChild(btn);
-        });
-        var slotLabel = document.createElement("span");
-        slotLabel.className = "slot-count-label";
-        slotLabel.textContent = slotWord(slotCount);
-        slotCtrl.appendChild(slotLabel);
-        meta.appendChild(slotCtrl);
+        meta.textContent = daysCount + " дн." + febNote;
         head.appendChild(meta);
         section.appendChild(head);
 
@@ -4479,6 +4496,7 @@
       }
 
       function initProfileUi() {
+        renderSlotCountControl();
         renderPetCountControl();
         renderPetNameFields();
         applyPetCopy();
