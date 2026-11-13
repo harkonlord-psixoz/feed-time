@@ -801,15 +801,186 @@
     }
 
     .profile-avatar {
+      position: relative;
       width: 4.25rem;
       height: 4.25rem;
       border-radius: 50%;
+      padding: 0;
+      overflow: hidden;
+      cursor: pointer;
       background:
         radial-gradient(circle at 35% 30%, #fff8f2 0 18%, transparent 19%),
         linear-gradient(145deg, var(--accent-soft), var(--accent));
       border: 2px solid color-mix(in srgb, var(--accent) 40%, var(--line));
       box-shadow: 0 6px 16px color-mix(in srgb, var(--accent-deep) 16%, transparent);
       flex-shrink: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .profile-avatar:hover {
+      border-color: var(--accent);
+    }
+
+    .profile-avatar:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+    }
+
+    .profile-avatar.has-photo {
+      background: var(--paper);
+    }
+
+    .profile-avatar-hint {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: color-mix(in srgb, var(--ink) 55%, transparent);
+      pointer-events: none;
+      background: color-mix(in srgb, var(--paper) 35%, transparent);
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .profile-avatar:hover .profile-avatar-hint,
+    .profile-avatar:focus-visible .profile-avatar-hint {
+      opacity: 1;
+    }
+
+    .profile-avatar.has-photo .profile-avatar-hint {
+      background: color-mix(in srgb, #000 45%, transparent);
+      color: #fff;
+    }
+
+    .avatar-clear-btn {
+      appearance: none;
+      margin-top: 0.45rem;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--accent-deep);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .avatar-crop-modal[hidden] {
+      display: none !important;
+    }
+
+    .avatar-crop-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: color-mix(in srgb, #000 55%, transparent);
+    }
+
+    .avatar-crop-card {
+      width: min(22rem, 100%);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1rem 1rem 1.1rem;
+      box-shadow: 0 18px 40px color-mix(in srgb, #000 28%, transparent);
+    }
+
+    .avatar-crop-card h3 {
+      margin: 0 0 0.35rem;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+    }
+
+    .avatar-crop-card p {
+      margin: 0 0 0.85rem;
+      color: var(--ink-soft);
+      font-size: 0.9rem;
+    }
+
+    .avatar-crop-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--lift) 70%, var(--paper));
+      border: 2px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+      touch-action: none;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .avatar-crop-stage.is-dragging {
+      cursor: grabbing;
+    }
+
+    .avatar-crop-stage img {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      max-width: none;
+      transform-origin: center center;
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+
+    .avatar-crop-controls {
+      margin-top: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .avatar-crop-controls label {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.88rem;
+      color: var(--ink-soft);
+    }
+
+    .avatar-crop-controls input[type="range"] {
+      flex: 1;
+    }
+
+    .avatar-crop-actions {
+      display: flex;
+      gap: 0.55rem;
+      justify-content: flex-end;
+      margin-top: 0.25rem;
+    }
+
+    .avatar-crop-actions button {
+      appearance: none;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 0.45rem 0.85rem;
+      cursor: pointer;
+    }
+
+    .avatar-crop-actions .avatar-crop-save {
+      background: color-mix(in srgb, var(--accent-soft) 65%, var(--paper));
+      border-color: var(--accent);
+      color: var(--accent-deep);
     }
 
     .profile-name {
@@ -2378,10 +2549,15 @@
         <h2 id="profile-title">Профиль</h2>
         <p>Сначала число питомцев, затем у каждого — свой вид и кличка. Можно смешивать виды (например, кошка и собака).</p>
         <div class="profile-head">
-          <div class="profile-avatar" aria-hidden="true"></div>
+          <button type="button" class="profile-avatar" id="profile-avatar-btn" aria-label="Выбрать аватар" title="Выбрать фото аватара">
+            <img id="profile-avatar-img" alt="" hidden />
+            <span class="profile-avatar-hint" id="profile-avatar-hint">Фото</span>
+          </button>
+          <input type="file" id="profile-avatar-file" accept="image/*" hidden />
           <div>
             <p class="profile-name" id="profile-summary-name">Хозяин Feed Time</p>
             <p class="profile-meta" id="profile-summary-meta">Питомцы ещё не настроены</p>
+            <button type="button" class="avatar-clear-btn" id="profile-avatar-clear" hidden>Убрать аватар</button>
           </div>
         </div>
         <div class="profile-form">
@@ -2535,6 +2711,26 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <div class="avatar-crop-modal" id="avatar-crop-modal" hidden>
+    <div class="avatar-crop-card" role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title">
+      <h3 id="avatar-crop-title">Аватар</h3>
+      <p>Перетащите фото и подгоните масштаб. Превью — кружок, как в Telegram.</p>
+      <div class="avatar-crop-stage" id="avatar-crop-stage">
+        <img id="avatar-crop-img" alt="" draggable="false" />
+      </div>
+      <div class="avatar-crop-controls">
+        <label>
+          Масштаб
+          <input type="range" id="avatar-crop-zoom" min="100" max="280" value="100" />
+        </label>
+        <div class="avatar-crop-actions">
+          <button type="button" id="avatar-crop-cancel">Отмена</button>
+          <button type="button" class="avatar-crop-save" id="avatar-crop-save">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="time-picker-root" id="time-picker" hidden>
     <div class="time-picker-backdrop" id="time-picker-backdrop" aria-hidden="true"></div>
     <div
@@ -2637,7 +2833,10 @@
       const PROFILE_UPDATED_AT_KEY = "mur-calendar-profile-updated-at";
       const SYNC_DEVICE_ID_KEY = "mur-calendar-sync-device-id";
       const FAMILY_NOTIF_SEEN_KEY = "mur-calendar-family-notif-seen";
-      const APP_VERSION = "1.9.6";
+      const APP_VERSION = "1.9.6-avatar";
+      const AVATAR_KEY = "mur-calendar-avatar";
+      const AVATAR_SIZE = 256;
+      const AVATAR_MAX_BYTES = 180000;
       const GITHUB_REPO = "harkonlord-psixoz/feed-time";
       const GITHUB_LATEST_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
       /* Default API for browser/APK when localStorage empty; meta allows host-specific override.
@@ -2695,6 +2894,18 @@
       const slotCountControl = document.getElementById("slot-count-control");
       const petCountControl = document.getElementById("pet-count-control");
       const petNamesList = document.getElementById("pet-names-list");
+      const profileAvatarBtn = document.getElementById("profile-avatar-btn");
+      const profileAvatarImg = document.getElementById("profile-avatar-img");
+      const profileAvatarHint = document.getElementById("profile-avatar-hint");
+      const profileAvatarFile = document.getElementById("profile-avatar-file");
+      const profileAvatarClear = document.getElementById("profile-avatar-clear");
+      const avatarCropModal = document.getElementById("avatar-crop-modal");
+      const avatarCropStage = document.getElementById("avatar-crop-stage");
+      const avatarCropImg = document.getElementById("avatar-crop-img");
+      const avatarCropZoom = document.getElementById("avatar-crop-zoom");
+      const avatarCropCancel = document.getElementById("avatar-crop-cancel");
+      const avatarCropSave = document.getElementById("avatar-crop-save");
+      var avatarCropState = null;
       const openPetSpeciesMenus = [];
       let currentView = "home";
       let drawerOpen = false;
@@ -4495,11 +4706,243 @@
         }
       }
 
+      function loadAvatarDataUrl() {
+        try {
+          var raw = localStorage.getItem(AVATAR_KEY);
+          if (raw && raw.indexOf("data:image/") === 0) return raw;
+        } catch (e) {}
+        return "";
+      }
+
+      function saveAvatarDataUrl(dataUrl) {
+        try {
+          if (!dataUrl) localStorage.removeItem(AVATAR_KEY);
+          else localStorage.setItem(AVATAR_KEY, dataUrl);
+        } catch (e) {
+          showToast("Не удалось сохранить аватар (мало места в localStorage)");
+          return false;
+        }
+        return true;
+      }
+
+      function applyAvatarUi(dataUrl) {
+        var url = dataUrl || "";
+        if (profileAvatarImg) {
+          if (url) {
+            profileAvatarImg.src = url;
+            profileAvatarImg.hidden = false;
+          } else {
+            profileAvatarImg.removeAttribute("src");
+            profileAvatarImg.hidden = true;
+          }
+        }
+        if (profileAvatarBtn) {
+          profileAvatarBtn.classList.toggle("has-photo", !!url);
+        }
+        if (profileAvatarHint) {
+          profileAvatarHint.textContent = url ? "Сменить" : "Фото";
+        }
+        if (profileAvatarClear) {
+          profileAvatarClear.hidden = !url;
+        }
+      }
+
+      function updateAvatarCropTransform() {
+        if (!avatarCropState || !avatarCropImg || !avatarCropStage) return;
+        var st = avatarCropState;
+        var stage = avatarCropStage.getBoundingClientRect().width || 280;
+        var base = Math.max(stage / st.nw, stage / st.nh);
+        var scale = base * st.zoom;
+        var w = st.nw * scale;
+        var h = st.nh * scale;
+        var maxX = Math.max(0, (w - stage) / 2);
+        var maxY = Math.max(0, (h - stage) / 2);
+        st.ox = Math.max(-maxX, Math.min(maxX, st.ox));
+        st.oy = Math.max(-maxY, Math.min(maxY, st.oy));
+        avatarCropImg.style.width = w + "px";
+        avatarCropImg.style.height = h + "px";
+        avatarCropImg.style.transform =
+          "translate(calc(-50% + " + st.ox + "px), calc(-50% + " + st.oy + "px))";
+      }
+
+      function closeAvatarCrop() {
+        if (avatarCropModal) avatarCropModal.hidden = true;
+        avatarCropState = null;
+        if (avatarCropImg) avatarCropImg.removeAttribute("src");
+        if (profileAvatarFile) profileAvatarFile.value = "";
+      }
+
+      function openAvatarCrop(objectUrl, naturalW, naturalH) {
+        avatarCropState = {
+          url: objectUrl,
+          nw: naturalW,
+          nh: naturalH,
+          zoom: 1,
+          ox: 0,
+          oy: 0,
+          dragging: false,
+          startX: 0,
+          startY: 0,
+          originX: 0,
+          originY: 0
+        };
+        if (avatarCropImg) avatarCropImg.src = objectUrl;
+        if (avatarCropZoom) avatarCropZoom.value = "100";
+        if (avatarCropModal) avatarCropModal.hidden = false;
+        requestAnimationFrame(updateAvatarCropTransform);
+      }
+
+      function exportAvatarCircle() {
+        if (!avatarCropState || !avatarCropStage) return "";
+        var st = avatarCropState;
+        var stage = avatarCropStage.getBoundingClientRect().width || 280;
+        var base = Math.max(stage / st.nw, stage / st.nh);
+        var scale = base * st.zoom;
+        var canvas = document.createElement("canvas");
+        canvas.width = AVATAR_SIZE;
+        canvas.height = AVATAR_SIZE;
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return "";
+        ctx.beginPath();
+        ctx.arc(AVATAR_SIZE / 2, AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.fillStyle = "#f5f0ea";
+        ctx.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+        var ratio = AVATAR_SIZE / stage;
+        var w = st.nw * scale * ratio;
+        var h = st.nh * scale * ratio;
+        var x = AVATAR_SIZE / 2 + st.ox * ratio - w / 2;
+        var y = AVATAR_SIZE / 2 + st.oy * ratio - h / 2;
+        ctx.drawImage(avatarCropImg, x, y, w, h);
+        var quality = 0.82;
+        var out = canvas.toDataURL("image/jpeg", quality);
+        while (out.length > AVATAR_MAX_BYTES && quality > 0.45) {
+          quality -= 0.08;
+          out = canvas.toDataURL("image/jpeg", quality);
+        }
+        return out;
+      }
+
+      function wireAvatarUi() {
+        if (!profileAvatarBtn || !profileAvatarFile) return;
+
+        profileAvatarBtn.addEventListener("click", function () {
+          profileAvatarFile.click();
+        });
+
+        if (profileAvatarClear) {
+          profileAvatarClear.addEventListener("click", function () {
+            saveAvatarDataUrl("");
+            applyAvatarUi("");
+            showToast("Аватар убран");
+          });
+        }
+
+        profileAvatarFile.addEventListener("change", function () {
+          var file = profileAvatarFile.files && profileAvatarFile.files[0];
+          if (!file) return;
+          if (!/^image\//.test(file.type || "")) {
+            showToast("Нужен файл изображения");
+            profileAvatarFile.value = "";
+            return;
+          }
+          if (file.size > 8 * 1024 * 1024) {
+            showToast("Слишком большой файл (макс. ~8 МБ)");
+            profileAvatarFile.value = "";
+            return;
+          }
+          var url = URL.createObjectURL(file);
+          var probe = new Image();
+          probe.onload = function () {
+            openAvatarCrop(url, probe.naturalWidth || probe.width, probe.naturalHeight || probe.height);
+          };
+          probe.onerror = function () {
+            URL.revokeObjectURL(url);
+            showToast("Не удалось открыть изображение");
+            profileAvatarFile.value = "";
+          };
+          probe.src = url;
+        });
+
+        if (avatarCropZoom) {
+          avatarCropZoom.addEventListener("input", function () {
+            if (!avatarCropState) return;
+            avatarCropState.zoom = Math.max(1, (parseInt(avatarCropZoom.value, 10) || 100) / 100);
+            updateAvatarCropTransform();
+          });
+        }
+
+        function onPointerDown(ev) {
+          if (!avatarCropState) return;
+          avatarCropState.dragging = true;
+          avatarCropState.startX = ev.clientX;
+          avatarCropState.startY = ev.clientY;
+          avatarCropState.originX = avatarCropState.ox;
+          avatarCropState.originY = avatarCropState.oy;
+          if (avatarCropStage) avatarCropStage.classList.add("is-dragging");
+          if (avatarCropStage.setPointerCapture) {
+            try { avatarCropStage.setPointerCapture(ev.pointerId); } catch (e) {}
+          }
+        }
+        function onPointerMove(ev) {
+          if (!avatarCropState || !avatarCropState.dragging) return;
+          avatarCropState.ox = avatarCropState.originX + (ev.clientX - avatarCropState.startX);
+          avatarCropState.oy = avatarCropState.originY + (ev.clientY - avatarCropState.startY);
+          updateAvatarCropTransform();
+        }
+        function onPointerUp(ev) {
+          if (!avatarCropState) return;
+          avatarCropState.dragging = false;
+          if (avatarCropStage) avatarCropStage.classList.remove("is-dragging");
+          if (ev && avatarCropStage && avatarCropStage.releasePointerCapture) {
+            try { avatarCropStage.releasePointerCapture(ev.pointerId); } catch (e) {}
+          }
+        }
+        if (avatarCropStage) {
+          avatarCropStage.addEventListener("pointerdown", onPointerDown);
+          avatarCropStage.addEventListener("pointermove", onPointerMove);
+          avatarCropStage.addEventListener("pointerup", onPointerUp);
+          avatarCropStage.addEventListener("pointercancel", onPointerUp);
+        }
+
+        if (avatarCropCancel) {
+          avatarCropCancel.addEventListener("click", function () {
+            if (avatarCropState && avatarCropState.url) URL.revokeObjectURL(avatarCropState.url);
+            closeAvatarCrop();
+          });
+        }
+        if (avatarCropSave) {
+          avatarCropSave.addEventListener("click", function () {
+            var dataUrl = exportAvatarCircle();
+            if (!dataUrl) {
+              showToast("Не удалось обрезать фото");
+              return;
+            }
+            if (!saveAvatarDataUrl(dataUrl)) return;
+            applyAvatarUi(dataUrl);
+            if (avatarCropState && avatarCropState.url) URL.revokeObjectURL(avatarCropState.url);
+            closeAvatarCrop();
+            showToast("Аватар сохранён на устройстве");
+          });
+        }
+        if (avatarCropModal) {
+          avatarCropModal.addEventListener("click", function (ev) {
+            if (ev.target === avatarCropModal) {
+              if (avatarCropState && avatarCropState.url) URL.revokeObjectURL(avatarCropState.url);
+              closeAvatarCrop();
+            }
+          });
+        }
+      }
+
       function initProfileUi() {
         renderSlotCountControl();
         renderPetCountControl();
         renderPetNameFields();
         applyPetCopy();
+        applyAvatarUi(loadAvatarDataUrl());
+        wireAvatarUi();
       }
 
       /* ——— Notifications (Android bridge + web Notification hooks) ——— */
