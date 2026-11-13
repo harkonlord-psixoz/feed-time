@@ -75,9 +75,8 @@ public final class FeedNotifier {
         String text = (body == null || body.trim().isEmpty())
                 ? "Питомца покормили только что"
                 : body.trim();
-        /* Unique id so undo → feed again re-alerts instead of silently replacing. */
-        int id = ID_JUST_FED + (int) (System.currentTimeMillis() & 0xffff);
-        show(context, id, "Feed Time", text);
+        /* Stable id — replace, don't stack duplicates on resume / re-delivery. */
+        show(context, ID_JUST_FED, "Feed Time", text);
     }
 
     /** Cross-device: another household member recorded a feeding. */
@@ -85,7 +84,6 @@ public final class FeedNotifier {
         String text = (body == null || body.trim().isEmpty())
                 ? "В семье отметили кормление"
                 : body.trim();
-        int id = ID_FAMILY_FED + (int) (System.currentTimeMillis() & 0xffff);
-        show(context, id, "Feed Time · семья", text);
+        show(context, ID_FAMILY_FED, "Feed Time · семья", text);
     }
 }

@@ -80,8 +80,9 @@ public final class FeedReminderScheduler {
         long now = System.currentTimeMillis();
         long base = last > 0 ? last : now;
 
-        scheduleAt(context, ACTION_REMINDER, REQ_REMINDER, adjustQuiet(base + REMINDER_MS));
-        scheduleAt(context, ACTION_HUNGRY, REQ_HUNGRY, adjustQuiet(base + HUNGRY_MS));
+        /* Reminder/hungry: if already due, cancel — do NOT arm now+5s (that re-fired on every open/close). */
+        scheduleFutureOrCancel(context, ACTION_REMINDER, REQ_REMINDER, adjustQuiet(base + REMINDER_MS));
+        scheduleFutureOrCancel(context, ACTION_HUNGRY, REQ_HUNGRY, adjustQuiet(base + HUNGRY_MS));
         scheduleAt(context, ACTION_MORNING, REQ_MORNING, nextMorningMillis(now));
     }
 
@@ -130,6 +131,19 @@ public final class FeedReminderScheduler {
             c.add(Calendar.DAY_OF_YEAR, 1);
         }
         return c.getTimeInMillis();
+    }
+
+    /**
+     * Only arm if still in the future. Missed reminder windows wait for the next feed
+     * (otherwise every onResume / WebView reload re-scheduled now+5s and duplicated pushes).
+     */
+    private static void scheduleFutureOrCancel(Context context, String action, int reqCode, long atMs) {
+        long now = System.currentTimeMillis();
+        if (atMs <= now + 1_000L) {
+            cancel(context, action, reqCode);
+            return;
+        }
+        scheduleAt(context, action, reqCode, atMs);
     }
 
     private static void scheduleAt(Context context, String action, int reqCode, long atMs) {
