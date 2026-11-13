@@ -2,8 +2,11 @@ package com.murcalendar.feeding;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -12,6 +15,8 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.DownloadListener;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -19,9 +24,16 @@ import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
     private static final int REQ_POST_NOTIFICATIONS = 1001;
+    private static final int REQ_FILE_CHOOSER = 1002;
+    private static final int REQ_READ_MEDIA = 1003;
+
     private WebView webView;
     private int insetTopPx;
     private int insetBottomPx;
+
+    /** Pending callback for &lt;input type=file&gt; (avatar picker). */
+    private ValueCallback<Uri[]> filePathCallback;
+    private WebChromeClient.FileChooserParams pendingFileChooserParams;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -38,6 +50,7 @@ public class MainActivity extends Activity {
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
         /* Local assets (file://) must call api.github.com for update-check. */
         //noinspection deprecation
         settings.setAllowUniversalAccessFromFileURLs(true);
@@ -74,6 +87,27 @@ public class MainActivity extends Activity {
             }
         });
 
+        /* Without this, &lt;input type="file"&gt; does nothing in Android WebView. */
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(
+                    WebView view,
+                    ValueCallback<Uri[]> callback,
+                    FileChooserParams params
+            ) {
+                if (filePathCallback != null) {
+                    filePathCallback.onReceiveValue(null);
+                }
+                filePathCallback = callback;
+                pendingFileChooserParams = params;
+                if (needsMediaPermission() && !hasMediaPermission()) {
+                    requestMediaPermission();
+                    return true;
+                }
+                return launchFileChooser(params);
+            }
+        });
+
         webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(
@@ -100,6 +134,120 @@ public class MainActivity extends Activity {
         });
 
         webView.loadUrl("file:///android_asset/index.html");
+    }
+
+    private boolean needsMediaPermission() {
+        /* SAF/GET_CONTENT often works without grant; still ask so OEM galleries can read. */
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+    }
+
+    private boolean hasMediaPermission() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            return checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+        return true;
+    }
+
+    private void requestMediaPermission() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            requestPermissions(
+                    new String[]{android.Manifest.permission.READ_MEDIA_IMAGES},
+                    REQ_READ_MEDIA
+            );
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(
+                    new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},
+                    REQ_READ_MEDIA
+            );
+        }
+    }
+
+    private boolean launchFileChooser(WebChromeClient.FileChooserParams params) {
+        Intent intent;
+        if (params != null) {
+            intent = params.createIntent();
+        } else {
+            intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("image/*");
+        }
+        /* Prefer images for avatar; keep accept from HTML when present. */
+        String[] accept = params != null ? params.getAcceptTypes() : null;
+        if (accept == null || accept.length == 0
+                || (accept.length == 1 && (accept[0] == null || accept[0].isEmpty()))) {
+            intent.setType("image/*");
+        }
+        try {
+            startActivityForResult(
+                    Intent.createChooser(intent, "Выберите фото"),
+                    REQ_FILE_CHOOSER
+            );
+            return true;
+        } catch (ActivityNotFoundException e) {
+            cancelFileChooser();
+            android.widget.Toast.makeText(
+                    this,
+                    "Нет приложения для выбора фото",
+                    android.widget.Toast.LENGTH_SHORT
+            ).show();
+            return false;
+        }
+    }
+
+    private void cancelFileChooser() {
+        if (filePathCallback != null) {
+            filePathCallback.onReceiveValue(null);
+            filePathCallback = null;
+        }
+        pendingFileChooserParams = null;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_FILE_CHOOSER) {
+            Uri[] results = null;
+            if (filePathCallback != null) {
+                if (resultCode == RESULT_OK) {
+                    results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                }
+                filePathCallback.onReceiveValue(results);
+                filePathCallback = null;
+            }
+            pendingFileChooserParams = null;
+            return;
+        }
+        //noinspection deprecation
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults
+    ) {
+        if (requestCode == REQ_READ_MEDIA) {
+            boolean granted = grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            WebChromeClient.FileChooserParams params = pendingFileChooserParams;
+            /* Even if denied, still try SAF/GET_CONTENT — often works without grant. */
+            if (filePathCallback != null) {
+                if (!launchFileChooser(params) && !granted) {
+                    android.widget.Toast.makeText(
+                            this,
+                            "Нужен доступ к фото, чтобы выбрать аватар",
+                            android.widget.Toast.LENGTH_SHORT
+                    ).show();
+                }
+            }
+            return;
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     /** Draw content behind transparent status / navigation bars (Telegram-style). */
@@ -228,6 +376,12 @@ public class MainActivity extends Activity {
         FeedingAppWidget.requestUpdate(this);
         /* Reschedule future alarms only; past-due windows are cancelled (no now+5s re-fire). */
         FeedReminderScheduler.rescheduleAll(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        cancelFileChooser();
+        super.onDestroy();
     }
 
     private void requestNotifPermissionIfNeeded() {
